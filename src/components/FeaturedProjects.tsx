@@ -39,7 +39,7 @@ const projects: Project[] = [
 
 export function FeaturedProjects() {
   return (
-    <section className="w-full bg-background py-16 md:py-24">
+    <section id="projects" className="w-full bg-card py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 md:mb-14">
           <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
@@ -54,7 +54,7 @@ export function FeaturedProjects() {
           {projects.map((project) => (
             <article
               key={project.id}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-md"
+              className="group flex flex-col overflow-hidden rounded-2xl bg-card shadow-soft transition-transform hover:-translate-y-1"
             >
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                 <img
@@ -77,7 +77,7 @@ export function FeaturedProjects() {
                   {project.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+                      className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand"
                     >
                       {tag}
                     </span>
@@ -89,5 +89,6 @@ export function FeaturedProjects() {
         </div>
       </div>
     </section>
+
   );
 }
