@@ -61,9 +61,9 @@ export function WhatIDo() {
           {services.map((service) => (
             <article
               key={service.id}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md"
+              className="group flex flex-col rounded-2xl bg-card p-6 shadow-soft transition-transform hover:-translate-y-1"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand transition-colors group-hover:bg-brand group-hover:text-brand-foreground">
                 {service.icon}
               </div>
               <h3 className="mt-5 text-xl font-semibold text-card-foreground">
@@ -72,8 +72,8 @@ export function WhatIDo() {
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
                 {service.description}
               </p>
-              <div className="mt-5 border-t border-border pt-5">
-                <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+              <div className="mt-5 rounded-xl bg-brand-soft p-4">
+                <span className="text-xs font-semibold uppercase tracking-wide text-brand">
                   Результат
                 </span>
                 <p className="mt-1 text-sm font-medium text-card-foreground">
@@ -85,5 +85,6 @@ export function WhatIDo() {
         </div>
       </div>
     </section>
+
   );
 }
