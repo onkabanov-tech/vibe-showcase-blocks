@@ -45,7 +45,7 @@ const steps: Step[] = [
 
 export function HowItWorks() {
   return (
-    <section id="process" className="w-full bg-background py-16 md:py-24">
+    <section id="process" className="w-full bg-card py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 md:mb-14">
           <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
@@ -60,17 +60,17 @@ export function HowItWorks() {
         <div className="hidden md:block">
           <div className="relative">
             {/* Connecting line */}
-            <div className="absolute left-0 right-0 top-[2.75rem] h-px bg-border" />
+            <div className="absolute left-0 right-0 top-[2.75rem] h-px bg-brand-soft" />
 
             <div className="grid grid-cols-4 gap-8">
               {steps.map((step) => (
                 <div key={step.id} className="relative flex flex-col">
                   {/* Step number + icon */}
                   <div className="relative z-10 mb-6 flex items-center gap-3">
-                    <span className="text-3xl font-bold text-muted-foreground/40">
+                    <span className="text-3xl font-bold text-brand/30">
                       {step.number}
                     </span>
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-border bg-card text-primary shadow-sm">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground shadow-soft">
                       {step.icon}
                     </div>
                   </div>
@@ -92,20 +92,21 @@ export function HowItWorks() {
         <div className="md:hidden">
           <div className="relative">
             {/* Connecting line */}
-            <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
+            <div className="absolute left-6 top-0 bottom-0 w-px bg-brand-soft" />
 
             <div className="space-y-8">
               {steps.map((step) => (
                 <div key={step.id} className="relative flex gap-5">
                   {/* Icon + number */}
                   <div className="relative z-10 flex shrink-0 flex-col items-center gap-2">
-                    <div className="grid h-12 w-12 place-items-center rounded-full border border-border bg-card text-primary shadow-sm">
+                    <div className="grid h-12 w-12 place-items-center rounded-full bg-brand text-brand-foreground shadow-soft">
                       {step.icon}
                     </div>
-                    <span className="text-xs font-bold text-muted-foreground/40">
+                    <span className="text-xs font-bold text-brand/50">
                       {step.number}
                     </span>
                   </div>
+
 
                   {/* Content */}
                   <div className="flex-1 pb-2">
