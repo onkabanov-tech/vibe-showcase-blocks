@@ -45,6 +45,7 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --shadow-soft: var(--shadow-card);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
