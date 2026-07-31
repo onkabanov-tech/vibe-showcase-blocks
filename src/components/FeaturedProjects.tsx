@@ -39,7 +39,7 @@ const projects: Project[] = [
 
 export function FeaturedProjects() {
   return (
-    <section id="projects" className="w-full bg-card py-16 md:py-24">
+    <section id="projects" className="w-full bg-background py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 md:mb-14">
           <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
