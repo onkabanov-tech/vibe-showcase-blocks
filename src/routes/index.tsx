@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ContactCta } from "@/components/ContactCta";
 import { FeaturedProjects } from "@/components/FeaturedProjects";
 import { Hero } from "@/components/Hero";
 import { HowItWorks } from "@/components/HowItWorks";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
 import { WhatIDo } from "@/components/WhatIDo";
 
-const title = "Вайбкодер — запуск продуктов с ИИ за недели";
+const title = "Алексей Морозов — продуктовый дизайнер";
 const description =
-  "Портфолио специалиста по вайбкодингу: MVP за неделю, AI-автоматизация, UI/UX и интеграции. Проекты StudyFlow, НейроАналитик и LaunchPro.";
+  "Продуктовый дизайнер с 7-летним опытом: UX/UI, дизайн-системы, исследования. Кейсы NeoBank, Taskly и GreenMarket.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,14 +30,16 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <main className="min-h-screen bg-background">
-      <Hero />
-      <WhatIDo />
-      <FeaturedProjects />
-      <HowItWorks />
-    </main>
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <main>
+        <Hero />
+        <FeaturedProjects />
+        <WhatIDo />
+        <HowItWorks />
+        <ContactCta />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
-
-
-

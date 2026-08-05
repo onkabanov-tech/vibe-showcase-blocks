@@ -1,94 +1,71 @@
-import studyflowPreview from "../assets/studyflow-preview.png.asset.json";
-import neuroanalystPreview from "../assets/neuroanalyst-preview.png.asset.json";
-import launchproPreview from "../assets/launchpro-preview.png.asset.json";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  tags: string[];
-  preview: { url: string };
-}
-
-const projects: Project[] = [
+const projects = [
   {
-    id: "studyflow",
-    title: "StudyFlow",
+    id: "01",
+    tag: "Fintech · Mobile",
+    title: "NeoBank — мобильный банк",
     description:
-      "AI-платформа для персонализированного обучения, которая строит адаптивные учебные планы и помогает учиться быстрее.",
-    tags: ["React", "TypeScript", "OpenAI", "Tailwind CSS"],
-    preview: studyflowPreview,
+      "Редизайн приложения для 2 млн пользователей. Конверсия в открытие счёта выросла на 38%.",
+    gradient: "gradient-brand",
   },
   {
-    id: "neuroanalyst",
-    title: "НейроАналитик",
+    id: "02",
+    tag: "SaaS · Web",
+    title: "Taskly — система управления",
     description:
-      "AI-сервис для анализа данных: автоматическая визуализация, прогнозирование и генерация инсайтов для бизнеса.",
-    tags: ["Python", "FastAPI", "LangChain", "Recharts"],
-    preview: neuroanalystPreview,
+      "Дизайн-система и ключевые экраны B2B-платформы. Сократили время онбординга в 2 раза.",
+    gradient: "bg-[linear-gradient(135deg,oklch(0.65_0.22_18),oklch(0.78_0.16_60))]",
   },
   {
-    id: "launchpro",
-    title: "LaunchPro",
+    id: "03",
+    tag: "E-commerce · UX",
+    title: "GreenMarket — маркетплейс",
     description:
-      "Лендинг для продукта с конверсионным дизайном, анимациями и быстрой загрузкой для запуска нового сервиса.",
-    tags: ["Next", "Framer Motion", "Figma", "Vercel"],
-    preview: launchproPreview,
+      "UX-аудит и редизайн checkout-пути. Средний чек вырос на 22%, отказы в корзине снизились на 41%.",
+    gradient: "bg-[linear-gradient(135deg,oklch(0.8_0.13_205),oklch(0.72_0.16_162))]",
   },
 ];
 
 export function FeaturedProjects() {
   return (
-    <section id="projects" className="w-full bg-background py-16 md:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 md:mb-14">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-            Избранные проекты
-          </h2>
-          <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
-            Работы, созданные с помощью AI-инструментов и вайбкодинга.
-          </p>
-        </div>
+    <section id="projects" className="px-6 py-24 md:py-28">
+      <div className="mx-auto max-w-6xl">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.15em] text-cyan">
+          Избранные проекты
+        </span>
+        <h2 className="mt-4 text-[clamp(2rem,5vw,3rem)] font-extrabold leading-tight tracking-tight">
+          Кейсы, которыми горжусь
+        </h2>
+        <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
+          От первых набросков до релиза — каждый проект это история о том, как
+          дизайн решает реальные бизнес-задачи.
+        </p>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <article
               key={project.id}
-              className="group flex flex-col overflow-hidden rounded-2xl bg-card shadow-soft transition-transform hover:-translate-y-1"
+              className="group overflow-hidden rounded-3xl border border-border bg-card transition-all hover:-translate-y-1.5 hover:border-brand/40"
             >
-              <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-                <img
-                  src={project.preview.url}
-                  alt={`Превью проекта ${project.title}`}
-                  width={1024}
-                  height={768}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+              <div
+                className={`flex h-56 items-center justify-center text-6xl font-extrabold text-primary-foreground/20 ${project.gradient}`}
+              >
+                {project.id}
               </div>
-              <div className="flex flex-1 flex-col p-5 sm:p-6">
-                <h3 className="text-xl font-semibold text-card-foreground">
+              <div className="p-6">
+                <span className="text-xs uppercase tracking-[0.1em] text-cyan">
+                  {project.tag}
+                </span>
+                <h3 className="mt-3 text-xl font-bold text-card-foreground">
                   {project.title}
                 </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                   {project.description}
                 </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {project.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
             </article>
           ))}
         </div>
       </div>
     </section>
-
   );
 }

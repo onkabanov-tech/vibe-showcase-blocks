@@ -1,90 +1,68 @@
-import { Bot, Palette, Puzzle, Rocket } from "lucide-react";
-
-interface Service {
-  id: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  result: string;
-}
-
-const services: Service[] = [
+const services = [
   {
-    id: "mvp",
-    icon: <Rocket className="h-6 w-6" />,
-    title: "MVP за неделю",
+    id: "uiux",
+    icon: "🎨",
+    title: "UX/UI дизайн",
     description:
-      "Создаю работающий прототип продукта с нуля: от идеи до выложенного лендинга или приложения за 5–7 дней.",
-    result: "Готовый продукт через неделю вместо месяцев разработки.",
+      "Проектирование интерфейсов сайтов и мобильных приложений с фокусом на пользовательский опыт.",
   },
   {
-    id: "ai-automation",
-    icon: <Bot className="h-6 w-6" />,
-    title: "AI-автоматизация",
+    id: "systems",
+    icon: "📐",
+    title: "Дизайн-системы",
     description:
-      "Настраиваю AI-агентов и автоматические пайплайны, которые берут на себя рутину и ускоряют бизнес-процессы.",
-    result: "Экономия до 10+ часов в неделю на ручных операциях.",
+      "Создание масштабируемых компонентов и гайдлайнов для команд продукта и разработки.",
   },
   {
-    id: "ui-ux",
-    icon: <Palette className="h-6 w-6" />,
-    title: "UI/UX с вайбкодингом",
+    id: "research",
+    icon: "🔍",
+    title: "UX-исследования",
     description:
-      "Проектирую интерфейсы с помощью AI-инструментов: быстро, стильно и с упором на поведение пользователя.",
-    result: "Современный дизайн без долгих согласований.",
+      "CustDev, юзабилити-тесты, аналитика. Помогаю принимать решения на основе данных, а не догадок.",
   },
   {
-    id: "integrations",
-    icon: <Puzzle className="h-6 w-6" />,
-    title: "Интеграции",
+    id: "product",
+    icon: "🚀",
+    title: "Продуктовый дизайн",
     description:
-      "Соединяю сервисы, API и базы данных в единый поток, чтобы всё работало автоматически и без сбоев.",
-    result: "Единая экосистема вместо разрозненных инструментов.",
+      "Полный цикл работы над продуктом: от стратегии и прототипов до запуска и развития.",
   },
 ];
 
 export function WhatIDo() {
   return (
-    <section id="services" className="w-full bg-background py-16 md:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 md:mb-14">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-            Что я делаю
-          </h2>
-          <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
-            Услуги, которые помогают запускать продукты, автоматизировать рутину
-            и создавать удобные интерфейсы.
-          </p>
-        </div>
+    <section id="services" className="px-6 py-24 md:py-28">
+      <div className="mx-auto max-w-6xl">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.15em] text-cyan">
+          Что я делаю
+        </span>
+        <h2 className="mt-4 text-[clamp(2rem,5vw,3rem)] font-extrabold leading-tight tracking-tight">
+          Экспертиза и услуги
+        </h2>
+        <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
+          Работаю на стыке дизайна, продукта и бизнеса. Беру задачу от
+          исследования до передачи в разработку.
+        </p>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((service) => (
             <article
               key={service.id}
-              className="group flex flex-col rounded-2xl bg-card p-6 shadow-soft transition-transform hover:-translate-y-1"
+              className="rounded-3xl border border-border bg-card p-8 transition-all hover:-translate-y-1 hover:bg-accent"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand transition-colors group-hover:bg-brand group-hover:text-brand-foreground">
+              <div className="gradient-brand grid h-14 w-14 place-items-center rounded-2xl text-2xl">
                 {service.icon}
               </div>
-              <h3 className="mt-5 text-xl font-semibold text-card-foreground">
+              <h3 className="mt-5 text-xl font-bold text-card-foreground">
                 {service.title}
               </h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
                 {service.description}
               </p>
-              <div className="mt-5 rounded-xl bg-brand-soft p-4">
-                <span className="text-xs font-semibold uppercase tracking-wide text-brand">
-                  Результат
-                </span>
-                <p className="mt-1 text-sm font-medium text-card-foreground">
-                  {service.result}
-                </p>
-              </div>
             </article>
           ))}
         </div>
       </div>
     </section>
-
   );
 }
