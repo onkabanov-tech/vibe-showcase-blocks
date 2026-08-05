@@ -1,57 +1,50 @@
-import { ArrowRight, Sparkles } from "lucide-react";
-
-const stats = [
-  { id: "speed", value: "5–7 дней", label: "от идеи до MVP" },
-  { id: "projects", value: "20+", label: "запущенных продуктов" },
-  { id: "hours", value: "10+ часов", label: "экономии в неделю" },
-];
-
 export function Hero() {
   return (
-    <section className="w-full bg-brand text-brand-foreground">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-        <span className="inline-flex items-center gap-2 rounded-full bg-brand-foreground/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-          <Sparkles className="h-3.5 w-3.5 shrink-0" />
-          Вайбкодинг и AI-разработка
+    <section
+      id="top"
+      className="relative flex min-h-screen items-center overflow-hidden px-6 pb-20 pt-32 md:pt-40"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-32 -top-40 h-[600px] w-[600px] rounded-full bg-brand/25 blur-[120px]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 -left-32 h-[500px] w-[500px] rounded-full bg-cyan/20 blur-[120px]"
+      />
+
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-[13px] text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-success shadow-[0_0_12px_currentColor] text-success" />
+          Открыт для новых проектов · Июль 2026
         </span>
 
-        <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-          Запускаю продукты с ИИ за недели, а не месяцы
+        <h1 className="max-w-4xl text-[clamp(2.5rem,7vw,5rem)] font-extrabold leading-[1.05] tracking-tight">
+          Создаю цифровые продукты,
+          <br />
+          <span className="gradient-text">которые любят пользователи</span>
         </h1>
 
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-brand-foreground/85 md:text-lg">
-          Собираю MVP, автоматизирую рутину и проектирую интерфейсы с помощью
-          AI-инструментов. Вы получаете рабочий продукт, а не бесконечную
-          разработку.
+        <p className="mt-6 max-w-2xl text-base text-muted-foreground md:text-xl">
+          Меня зовут Алексей — я продуктовый дизайнер с 7-летним опытом. Помогаю
+          стартапам и компаниям превращать сложные идеи в понятные, красивые и
+          работающие интерфейсы.
         </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-wrap gap-4">
           <a
-            href="#services"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cta px-6 py-3.5 text-base font-semibold text-cta-foreground shadow-soft transition-transform hover:-translate-y-0.5 sm:w-auto"
+            href="#projects"
+            className="gradient-brand inline-flex items-center gap-2.5 rounded-xl px-7 py-3.5 text-[15px] font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
           >
-            Обсудить проект
-            <ArrowRight className="h-4 w-4 shrink-0" />
+            Смотреть работы →
           </a>
           <a
-            href="#process"
-            className="inline-flex w-full items-center justify-center rounded-xl border border-brand-foreground/30 px-6 py-3.5 text-base font-semibold text-brand-foreground transition-colors hover:bg-brand-foreground/10 sm:w-auto"
+            href="#contact"
+            className="inline-flex items-center gap-2.5 rounded-xl border border-border bg-card px-7 py-3.5 text-[15px] font-semibold text-foreground transition-transform hover:-translate-y-0.5 hover:bg-accent"
           >
-            Как я работаю
+            Связаться со мной
           </a>
         </div>
-
-        <dl className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {stats.map((stat) => (
-            <div
-              key={stat.id}
-              className="rounded-2xl bg-card px-5 py-4 text-card-foreground shadow-soft"
-            >
-              <dt className="text-xl font-bold text-brand">{stat.value}</dt>
-              <dd className="mt-1 text-sm text-muted-foreground">{stat.label}</dd>
-            </div>
-          ))}
-        </dl>
       </div>
     </section>
   );
