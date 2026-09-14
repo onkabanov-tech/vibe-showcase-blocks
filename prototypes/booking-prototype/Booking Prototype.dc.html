@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  ::placeholder { color: #6b7a96; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0a1628;color:#ffffff;font-family:'Inter',sans-serif;line-height:1.6;">
+
+<sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+<div>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:16px;">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:22px;color:#d4af37;letter-spacing:0.05em;">Кабанов Олег</div>
+    <div style="display:flex;align-items:center;gap:24px;">
+      <a href="#services-anchor" style="color:#a0aec0;font-size:14px;font-weight:500;">Услуги</a>
+      <div onClick="{{ goToBooking }}" style="padding:12px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Записаться</div>
+    </div>
+  </header>
+
+  <section style="padding:100px 40px 60px;max-width:900px;margin:0 auto;">
+    <div style="display:inline-flex;align-items:center;gap:12px;padding:10px 20px;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);border-radius:999px;font-size:13px;color:#d4af37;margin-bottom:24px;font-weight:500;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 12px #22c55e;"></span>
+      Открыт для новых проектов · Сентябрь 2026
+    </div>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(40px,6vw,72px);font-weight:600;line-height:1.1;letter-spacing:-0.02em;margin:0 0 20px;">Обсудим ваш продукт на консультации</h1>
+    <p style="font-size:clamp(16px,2vw,19px);color:#a0aec0;max-width:620px;margin:0 0 32px;">Продуктовый дизайнер Олег Кабанов. Запишитесь на консультацию онлайн — выберите услугу, удобное время и получите подтверждение записи.</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div onClick="{{ goToBooking }}" style="display:inline-flex;align-items:center;gap:10px;padding:16px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;box-shadow:0 8px 24px rgba(212,175,55,0.3);">Записаться на консультацию →</div>
+      <a href="#services-anchor" style="display:inline-flex;align-items:center;gap:10px;padding:16px 32px;border-radius:8px;font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;background:transparent;color:#d4af37;border:1px solid #d4af37;">Смотреть услуги</a>
+    </div>
+  </section>
+
+  <section id="services-anchor" style="padding:20px 40px 80px;max-width:1100px;margin:0 auto;">
+    <span style="display:inline-block;font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px;">Услуги</span>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4vw,48px);font-weight:600;margin:0 0 32px;">Выберите формат консультации</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;">
+      <sc-for list="{{ services }}" as="svc" hint-placeholder-count="4">
+        <div style="padding:28px 24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;">
+          <h3 style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;margin:0 0 8px;">{{ svc.name }}</h3>
+          <p style="color:#a0aec0;font-size:14px;margin:0 0 16px;">{{ svc.desc }}</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#a0aec0;margin-bottom:18px;">
+            <span>{{ svc.duration }}</span>
+            <span style="color:#f4d03f;font-weight:600;">{{ svc.price }}</span>
+          </div>
+          <div onClick="{{ svc.onQuickBook }}" style="text-align:center;padding:12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:rgba(212,175,55,0.1);color:#d4af37;border:1px solid rgba(212,175,55,0.3);">Записаться →</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <footer style="padding:28px 40px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;color:#a0aec0;font-size:13px;display:flex;flex-direction:column;gap:8px;">
+    <span>© 2026 Кабанов Олег · Прототип сервиса записи</span>
+    <sc-if value="{{ showAdminLink }}" hint-placeholder-val="{{ true }}">
+      <span onClick="{{ goToAdmin }}" style="color:#6b7a96;cursor:pointer;text-decoration:underline;">Панель администратора</span>
+    </sc-if>
+  </footer>
+</div>
+</sc-if>
+
+<sc-if value="{{ isBooking }}" hint-placeholder-val="{{ false }}">
+<div>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:16px;">
+    <div onClick="{{ goToLanding }}" style="font-size:14px;color:#a0aec0;cursor:pointer;">← На главную</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#d4af37;">Запись на консультацию</div>
+  </header>
+
+  <section style="padding:48px 40px 80px;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr;gap:32px;align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:32px;min-width:0;">
+
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px;">Шаг 1 · Услуга</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+          <sc-for list="{{ servicesForBooking }}" as="svc" hint-placeholder-count="4">
+            <div onClick="{{ svc.onSelect }}" style="padding:18px;border-radius:12px;cursor:pointer;background:{{ svc.bg }};border:{{ svc.borderStyle }};">
+              <div style="font-weight:600;font-size:15px;margin-bottom:4px;">{{ svc.name }}</div>
+              <div style="font-size:12px;color:#a0aec0;">{{ svc.duration }} · {{ svc.price }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px;">Шаг 2 · Дата</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <sc-for list="{{ dates }}" as="d" hint-placeholder-count="7">
+            <div onClick="{{ d.onSelect }}" style="min-width:64px;padding:12px 10px;border-radius:10px;text-align:center;cursor:pointer;background:{{ d.bg }};border:{{ d.borderStyle }};">
+              <div style="font-size:11px;color:#a0aec0;text-transform:uppercase;">{{ d.weekdayLabel }}</div>
+              <div style="font-size:16px;font-weight:600;">{{ d.dayLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px;">Шаг 3 · Время</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <sc-for list="{{ times }}" as="t" hint-placeholder-count="6">
+            <div onClick="{{ t.onSelect }}" style="padding:12px 18px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;background:{{ t.bg }};border:{{ t.borderStyle }};">{{ t.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px;">Шаг 4 · Контакты</div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:440px;">
+          <input type="text" placeholder="Ваше имя" value="{{ clientName }}" onChange="{{ setName }}" style="padding:14px 16px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#ffffff;font-size:15px;font-family:'Inter',sans-serif;" />
+          <input type="text" placeholder="Телефон или email" value="{{ clientContact }}" onChange="{{ setContact }}" style="padding:14px 16px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#ffffff;font-size:15px;font-family:'Inter',sans-serif;" />
+          <textarea placeholder="Комментарий (необязательно)" value="{{ comment }}" onChange="{{ setComment }}" rows="3" style="padding:14px 16px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#ffffff;font-size:15px;font-family:'Inter',sans-serif;resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <sc-if value="{{ formError }}" hint-placeholder-val="{{ false }}">
+        <div style="color:#f87171;font-size:14px;">{{ formError }}</div>
+      </sc-if>
+    </div>
+
+    <div style="position:sticky;top:24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;min-width:0;">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;margin:0 0 20px;">Ваша запись</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:#a0aec0;margin-bottom:24px;">
+        <div>Услуга: <span style="color:#ffffff;font-weight:600;">{{ summaryService }}</span></div>
+        <div>Дата: <span style="color:#ffffff;font-weight:600;">{{ summaryDate }}</span></div>
+        <div>Время: <span style="color:#ffffff;font-weight:600;">{{ summaryTime }}</span></div>
+      </div>
+      <div onClick="{{ submitBooking }}" style="text-align:center;padding:16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Подтвердить запись</div>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isConfirmation }}" hint-placeholder-val="{{ false }}">
+<div>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#d4af37;">Кабанов Олег</div>
+  </header>
+  <section style="padding:70px 40px;max-width:560px;margin:0 auto;text-align:center;">
+    <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;color:#0a1628;font-weight:700;">✓</div>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4vw,42px);font-weight:600;margin:0 0 12px;">Запись создана</h1>
+    <p style="color:#a0aec0;font-size:15px;margin:0 0 32px;">Номер записи <strong style="color:#f4d03f;">{{ lastBooking.id }}</strong> · статус будет подтверждён администратором</p>
+
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;text-align:left;display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+      <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#a0aec0;">Услуга</span><span style="font-weight:600;">{{ lastBooking.serviceName }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#a0aec0;">Дата</span><span style="font-weight:600;">{{ lastBooking.dateLabel }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#a0aec0;">Время</span><span style="font-weight:600;">{{ lastBooking.time }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#a0aec0;">Имя</span><span style="font-weight:600;">{{ lastBooking.name }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#a0aec0;">Контакт</span><span style="font-weight:600;">{{ lastBooking.contact }}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;"><span style="color:#a0aec0;">Статус</span><span style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:{{ lastBooking.statusBg }};color:{{ lastBooking.statusColor }};">{{ lastBooking.statusLabel }}</span></div>
+    </div>
+
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <div onClick="{{ goToLanding }}" style="padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">На главную</div>
+      <div onClick="{{ goToAdmin }}" style="padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:transparent;color:#d4af37;border:1px solid #d4af37;">Открыть панель администратора</div>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div>
+  <header style="display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:16px;">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#d4af37;">Панель администратора</div>
+    <div onClick="{{ goToLanding }}" style="font-size:14px;color:#a0aec0;cursor:pointer;">На сайт →</div>
+  </header>
+
+  <section style="padding:36px 40px 80px;max-width:1100px;margin:0 auto;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px;">
+      <div style="flex:1;min-width:140px;padding:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+        <div style="font-size:28px;font-weight:700;font-family:'Cormorant Garamond',serif;">{{ totalCount }}</div>
+        <div style="font-size:13px;color:#a0aec0;">Всего записей</div>
+      </div>
+      <div style="flex:1;min-width:140px;padding:20px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:12px;">
+        <div style="font-size:28px;font-weight:700;font-family:'Cormorant Garamond',serif;color:#f4d03f;">{{ pendingCount }}</div>
+        <div style="font-size:13px;color:#a0aec0;">Ожидают подтверждения</div>
+      </div>
+      <div style="flex:1;min-width:140px;padding:20px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;">
+        <div style="font-size:28px;font-weight:700;font-family:'Cormorant Garamond',serif;color:#4ade80;">{{ confirmedCount }}</div>
+        <div style="font-size:13px;color:#a0aec0;">Подтверждено</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <sc-for list="{{ bookings }}" as="b" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:16px;align-items:center;padding:18px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+          <div>
+            <div style="font-weight:600;font-size:14px;">{{ b.name }}</div>
+            <div style="font-size:12px;color:#a0aec0;">{{ b.contact }}</div>
+          </div>
+          <div style="font-size:13px;">{{ b.serviceName }}</div>
+          <div style="font-size:13px;color:#a0aec0;">{{ b.dateLabel }} · {{ b.time }}</div>
+          <div style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ b.statusBg }};color:{{ b.statusColor }};">{{ b.statusLabel }}</div>
+          <div style="display:flex;gap:8px;">
+            <sc-if value="{{ b.showConfirm }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ b.onConfirm }}" style="padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);white-space:nowrap;">Подтвердить</div>
+            </sc-if>
+            <sc-if value="{{ b.showCancel }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ b.onCancel }}" style="padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.3);white-space:nowrap;">Отменить</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:900},&quot;showAdminLink&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const SERVICES = [
+  { id: 'ux-audit', name: 'UX-аудит интерфейса', duration: '60 мин', price: '8 000 ₽', desc: 'Разбор вашего продукта и рекомендации по улучшению UX.' },
+  { id: 'consult', name: 'Персональная консультация', duration: '45 мин', price: '5 000 ₽', desc: 'Обсуждение задачи, вопросы по дизайну и стратегии.' },
+  { id: 'design-system', name: 'Аудит дизайн-системы', duration: '90 мин', price: '12 000 ₽', desc: 'Проверка компонентов и гайдлайнов на масштабируемость.' },
+  { id: 'prototype', name: 'Разбор прототипа', duration: '60 мин', price: '7 000 ₽', desc: 'Проверка пользовательских сценариев и логики флоу.' }
+];
+const TIMES = ['10:00', '11:30', '13:00', '14:30', '16:00', '17:30'];
+const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+const STATUS_META = {
+  pending: { label: 'Ожидает подтверждения', bg: 'rgba(212,175,55,0.15)', color: '#f4d03f' },
+  confirmed: { label: 'Подтверждено', bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+  cancelled: { label: 'Отменено', bg: 'rgba(248,113,113,0.15)', color: '#f87171' }
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'landing',
+    selectedServiceId: null,
+    selectedDateIdx: 0,
+    selectedTime: null,
+    clientName: '',
+    clientContact: '',
+    comment: '',
+    formError: '',
+    lastBookingId: null,
+    bookings: [
+      { id: 'BK-1042', name: 'Анна Волкова', contact: '+7 999 123-45-67', serviceName: 'Персональная консультация', dateLabel: '10 сен, Чт', time: '14:30', status: 'confirmed' },
+      { id: 'BK-1043', name: 'Дмитрий Орлов', contact: 'dmitry.orlov@mail.ru', serviceName: 'UX-аудит интерфейса', dateLabel: '12 сен, Сб', time: '11:30', status: 'pending' },
+      { id: 'BK-1044', name: 'Мария Соколова', contact: '+7 916 555-22-11', serviceName: 'Аудит дизайн-системы', dateLabel: '11 сен, Пт', time: '16:00', status: 'cancelled' }
+    ],
+    nextId: 1045
+  };
+
+  constructor(props) {
+    super(props);
+    const today = new Date();
+    this.dates = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      return { dayLabel: d.getDate() + ' ' + MONTHS[d.getMonth()], weekdayLabel: WEEKDAYS[d.getDay()] };
+    });
+  }
+
+  goTo = (screen) => this.setState({ screen });
+  goToLanding = () => this.setState({ screen: 'landing' });
+  goToBooking = () => this.setState({ screen: 'booking' });
+  goToAdmin = () => this.setState({ screen: 'admin' });
+
+  quickBook = (id) => this.setState({ selectedServiceId: id, screen: 'booking' });
+  selectService = (id) => this.setState({ selectedServiceId: id });
+  selectDate = (idx) => this.setState({ selectedDateIdx: idx });
+  selectTime = (t) => this.setState({ selectedTime: t });
+  setName = (e) => this.setState({ clientName: e.target.value });
+  setContact = (e) => this.setState({ clientContact: e.target.value });
+  setComment = (e) => this.setState({ comment: e.target.value });
+
+  setStatus = (id, status) => {
+    this.setState(s => ({ bookings: s.bookings.map(b => b.id === id ? { ...b, status } : b) }));
+  };
+
+  submitBooking = () => {
+    const { selectedServiceId, selectedTime, clientName, clientContact, selectedDateIdx } = this.state;
+    if (!selectedServiceId || !selectedTime || !clientName.trim() || !clientContact.trim()) {
+      this.setState({ formError: 'Заполните услугу, дату, время и контактные данные.' });
+      return;
+    }
+    const svc = SERVICES.find(s => s.id === selectedServiceId);
+    const id = 'BK-' + this.state.nextId;
+    const booking = {
+      id,
+      name: clientName.trim(),
+      contact: clientContact.trim(),
+      serviceName: svc.name,
+      dateLabel: this.dates[selectedDateIdx].dayLabel + ', ' + this.dates[selectedDateIdx].weekdayLabel,
+      time: selectedTime,
+      status: 'pending'
+    };
+    this.setState(s => ({
+      bookings: [...s.bookings, booking],
+      lastBookingId: id,
+      nextId: s.nextId + 1,
+      screen: 'confirmation',
+      formError: ''
+    }));
+  };
+
+  renderVals() {
+    const s = this.state;
+    const selectedSvc = SERVICES.find(x => x.id === s.selectedServiceId);
+
+    const withPick = (isSel) => isSel
+      ? { bg: 'rgba(212,175,55,0.12)', borderStyle: '1px solid #d4af37' }
+      : { bg: 'rgba(255,255,255,0.03)', borderStyle: '1px solid rgba(255,255,255,0.08)' };
+
+    const servicesForBooking = SERVICES.map(svc => ({
+      ...svc,
+      ...withPick(svc.id === s.selectedServiceId),
+      onSelect: () => this.selectService(svc.id)
+    }));
+
+    const services = SERVICES.map(svc => ({ ...svc, onQuickBook: () => this.quickBook(svc.id) }));
+
+    const dates = this.dates.map((d, i) => ({
+      ...d,
+      ...withPick(i === s.selectedDateIdx),
+      onSelect: () => this.selectDate(i)
+    }));
+
+    const times = TIMES.map(t => ({
+      label: t,
+      ...withPick(t === s.selectedTime),
+      onSelect: () => this.selectTime(t)
+    }));
+
+    const bookings = s.bookings.slice().reverse().map(b => {
+      const meta = STATUS_META[b.status];
+      return {
+        ...b,
+        statusLabel: meta.label,
+        statusBg: meta.bg,
+        statusColor: meta.color,
+        showConfirm: b.status !== 'confirmed',
+        showCancel: b.status !== 'cancelled',
+        onConfirm: () => this.setStatus(b.id, 'confirmed'),
+        onCancel: () => this.setStatus(b.id, 'cancelled')
+      };
+    });
+
+    const lastB = s.bookings.find(b => b.id === s.lastBookingId);
+    const lastMeta = lastB ? STATUS_META[lastB.status] : STATUS_META.pending;
+    const lastBooking = lastB ? { ...lastB, statusLabel: lastMeta.label, statusBg: lastMeta.bg, statusColor: lastMeta.color } : {
+      id: '', serviceName: '', dateLabel: '', time: '', name: '', contact: '', statusLabel: '', statusBg: '', statusColor: ''
+    };
+
+    return {
+      isLanding: s.screen === 'landing',
+      isBooking: s.screen === 'booking',
+      isConfirmation: s.screen === 'confirmation',
+      isAdmin: s.screen === 'admin',
+      showAdminLink: this.props.showAdminLink ?? true,
+      goToLanding: this.goToLanding,
+      goToBooking: this.goToBooking,
+      goToAdmin: this.goToAdmin,
+      services,
+      servicesForBooking,
+      dates,
+      times,
+      clientName: s.clientName,
+      clientContact: s.clientContact,
+      comment: s.comment,
+      setName: this.setName,
+      setContact: this.setContact,
+      setComment: this.setComment,
+      formError: s.formError,
+      submitBooking: this.submitBooking,
+      summaryService: selectedSvc ? selectedSvc.name : 'Не выбрано',
+      summaryDate: s.selectedDateIdx != null ? (this.dates[s.selectedDateIdx].dayLabel + ', ' + this.dates[s.selectedDateIdx].weekdayLabel) : 'Не выбрано',
+      summaryTime: s.selectedTime || 'Не выбрано',
+      lastBooking,
+      bookings,
+      totalCount: s.bookings.length,
+      pendingCount: s.bookings.filter(b => b.status === 'pending').length,
+      confirmedCount: s.bookings.filter(b => b.status === 'confirmed').length
+    };
+  }
+}
+
+</script>
+</body>
+</html>

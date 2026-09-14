@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>* { box-sizing: border-box; } body { margin: 0; }</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0a1628;color:#ffffff;font-family:'Inter',sans-serif;padding:60px 40px;">
+  <h1 style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:#d4af37;margin:0 0 8px;text-align:center;">Схема связи экранов</h1>
+  <p style="text-align:center;color:#a0aec0;font-size:14px;margin:0 0 48px;">Booking Prototype.dc.html</p>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0;max-width:900px;margin:0 auto;">
+
+    <div style="width:260px;padding:20px 24px;background:rgba(255,255,255,0.04);border:1px solid #d4af37;border-radius:14px;text-align:center;">
+      <div style="font-weight:700;font-size:17px;">Лендинг</div>
+      <div style="font-size:12px;color:#a0aec0;margin-top:4px;">CTA «Записаться» · карточки услуг</div>
+    </div>
+    <div style="height:36px;width:2px;background:#d4af37;"></div>
+    <div style="font-size:12px;color:#f4d03f;margin-bottom:4px;">клик «Записаться на консультацию»</div>
+    <div style="height:16px;width:2px;background:#d4af37;"></div>
+
+    <div style="width:260px;padding:20px 24px;background:rgba(255,255,255,0.04);border:1px solid #d4af37;border-radius:14px;text-align:center;">
+      <div style="font-weight:700;font-size:17px;">Запись</div>
+      <div style="font-size:12px;color:#a0aec0;margin-top:4px;">услуга → дата → время → контакты</div>
+    </div>
+    <div style="height:36px;width:2px;background:#d4af37;"></div>
+    <div style="font-size:12px;color:#f4d03f;margin-bottom:4px;">клик «Подтвердить запись»</div>
+    <div style="height:16px;width:2px;background:#d4af37;"></div>
+
+    <div style="width:260px;padding:20px 24px;background:rgba(255,255,255,0.04);border:1px solid #d4af37;border-radius:14px;text-align:center;">
+      <div style="font-weight:700;font-size:17px;">Подтверждение</div>
+      <div style="font-size:12px;color:#a0aec0;margin-top:4px;">детали записи, статус «ожидает»</div>
+    </div>
+    <div style="height:36px;width:2px;background:#d4af37;"></div>
+    <div style="font-size:12px;color:#f4d03f;margin-bottom:4px;">клик «Открыть панель администратора»</div>
+    <div style="height:16px;width:2px;background:#d4af37;"></div>
+
+    <div style="width:260px;padding:20px 24px;background:rgba(255,255,255,0.04);border:1px solid #d4af37;border-radius:14px;text-align:center;">
+      <div style="font-weight:700;font-size:17px;">Админка</div>
+      <div style="font-size:12px;color:#a0aec0;margin-top:4px;">список записей, «Подтвердить/Отменить»</div>
+    </div>
+
+  </div>
+
+  <div style="max-width:900px;margin:56px auto 0;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:13px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.15em;">Обратные и боковые переходы</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;color:#a0aec0;">
+      <div>Запись <span style="color:#f4d03f;">← «← На главную»</span> → Лендинг</div>
+      <div>Подтверждение <span style="color:#f4d03f;">← «На главную»</span> → Лендинг</div>
+      <div>Админка <span style="color:#f4d03f;">← «На сайт →»</span> → Лендинг</div>
+      <div>Лендинг <span style="color:#f4d03f;">← «Панель администратора» (футер)</span> → Админка</div>
+      <div>Карточка услуги на Лендинге → сразу открывает Запись с выбранной услугой</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:900}}"></script>
+</body>
+</html>

@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Кабанов Олег — Продуктовый дизайнер</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg-primary: #0a1628;
+    --bg-secondary: #0f1f3d;
+    --bg-card: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --accent-gold: #d4af37;
+    --accent-gold-light: #f4d03f;
+    --gradient-gold: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* Верхняя панель */
+  .top-bar {
+    background: rgba(15,31,61,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+  }
+  .top-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .top-info {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .top-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .top-item strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .top-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .author-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--gradient-gold);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: var(--bg-primary);
+    font-size: 16px;
+  }
+  .author-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .author-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .author-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .top-social {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+  }
+  .top-social a {
+    color: var(--text-secondary);
+    transition: color .2s;
+  }
+  .top-social a:hover {
+    color: var(--accent-gold);
+  }
+
+  /* Навигация */
+  header {
+    position: fixed;
+    top: 72px; left: 0; right: 0;
+    z-index: 99;
+    backdrop-filter: blur(20px);
+    background: rgba(10,22,40,0.6);
+    border-bottom: 1px solid var(--border);
+  }
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; max-width: 1200px; margin: 0 auto;
+  }
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700; font-size: 20px;
+    color: var(--accent-gold);
+    letter-spacing: 0.05em;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: var(--text-secondary); font-size: 14px;
+    transition: color .2s;
+    font-weight: 500;
+  }
+  .nav-links a:hover { color: var(--accent-gold); }
+
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px;
+  }
+  .menu-toggle span {
+    width: 24px; height: 2px;
+    background: var(--text-primary);
+    transition: all .3s;
+  }
+
+  @media (max-width: 768px) {
+    .menu-toggle { display: flex; }
+    .nav-links {
+      position: fixed;
+      top: 130px; left: 0; right: 0;
+      background: rgba(10,22,40,0.95);
+      backdrop-filter: blur(20px);
+      flex-direction: column;
+      padding: 24px;
+      gap: 20px;
+      transform: translateY(-100%);
+      opacity: 0;
+      transition: transform .3s, opacity .3s;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-links.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .top-bar-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    position: relative;
+    padding: 140px 0 60px;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 80% 20%, rgba(212,175,55,0.08), transparent 50%);
+    z-index: 0;
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 900px; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 12px 24px;
+    background: rgba(212,175,55,0.1);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 999px;
+    font-size: 14px; color: var(--accent-gold);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .hero-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 12px #22c55e;
+  }
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+  .hero p {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text-secondary);
+    max-width: 640px;
+    margin-bottom: 32px;
+    line-height: 1.7;
+  }
+  .hero-cta { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  /* Кнопки */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    transition: all .3s;
+    border: none;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .btn-gold {
+    background: var(--gradient-gold);
+    color: var(--bg-primary);
+    box-shadow: 0 8px 24px rgba(212,175,55,0.3);
+  }
+  .btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(212,175,55,0.5);
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--accent-gold);
+    border: 1px solid var(--accent-gold);
+  }
+  .btn-outline:hover {
+    background: rgba(212,175,55,0.1);
+    transform: translateY(-2px);
+  }
+
+  /* Секции */
+  section { padding: 40px 0; position: relative; }
+  .section-label {
+    display: inline-block;
+    font-size: 13px; font-weight: 600;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+  .section-subtitle {
+    color: var(--text-secondary);
+    font-size: clamp(16px, 2vw, 18px);
+    max-width: 640px;
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+
+  /* Проекты */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+  }
+  .project-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform .3s, border-color .3s;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+  }
+  .project-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(212,175,55,0.4);
+  }
+  .project-image {
+    height: 240px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .project-image::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, var(--bg-primary), transparent);
+  }
+  .project-info { padding: 28px; }
+  .project-tag {
+    display: inline-block;
+    font-size: 12px; color: var(--accent-gold);
+    text-transform: uppercase; letter-spacing: 0.15em;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .project-info h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .project-info p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+
+  /* Как было */
+  .how-it-was {
+    background: var(--bg-secondary);
+    padding: 40px 0;
+  }
+  .how-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .how-text h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+  .how-text p {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .chat-bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .chat-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+  }
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .chat-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--gradient-gold);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: var(--bg-primary);
+    font-size: 14px;
+  }
+  .chat-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .chat-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .chat-text {
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Услуги */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .service-card {
+    padding: 32px 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: all .3s;
+    backdrop-filter: blur(10px);
+  }
+  .service-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(212,175,55,0.3);
+    background: rgba(212,175,55,0.05);
+  }
+  .service-icon {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    background: var(--gradient-gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    margin-bottom: 20px;
+  }
+  .service-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .service-card p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+
+  /* Процесс */
+  .process-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+  }
+  .process-step {
+    position: relative;
+    padding: 32px 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+  }
+  .process-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+  .process-step h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .process-step p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+
+  /* CTA */
+  .cta {
+    text-align: center;
+    padding: 60px 0;
+  }
+  .cta-box {
+    background: var(--bg-card);
+    border: 1px solid rgba(212,175,55,0.2);
+    border-radius: 24px;
+    padding: 72px 32px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+  }
+  .cta-box::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(212,175,55,0.1), transparent 60%);
+    pointer-events: none;
+  }
+  .cta-box > * { position: relative; z-index: 1; }
+  .cta h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+  .cta p {
+    color: var(--text-secondary);
+    font-size: 18px;
+    max-width: 540px;
+    margin: 0 auto 40px;
+    line-height: 1.7;
+  }
+  .cta-buttons {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  }
+
+  /* Footer */
+  footer {
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  /* Анимации */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity .7s ease, transform .7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    .how-content {
+      grid-template-columns: 1fr;
+    }
+    .hero {
+      padding: 120px 0 50px;
+    }
+    section {
+      padding: 30px 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Верхняя панель -->
+<div class="top-bar">
+  <div class="top-bar-content">
+    <div class="top-info">
+      <div class="top-item">
+        <span></span>
+        <span>Дата: <strong>Июль 2026</strong></span>
+      </div>
+      <div class="top-item">
+        <span></span>
+        <span><strong>90%</strong> Figma</span>
+      </div>
+      <div class="top-item">
+        <span></span>
+        <span><strong>10%</strong> Photoshop</span>
+      </div>
+    </div>
+    <div class="top-author">
+      <div class="author-avatar">КО</div>
+      <div class="author-info">
+        <span class="author-name">Кабанов Олег</span>
+        <span class="author-role">Продуктовый дизайнер</span>
+      </div>
+    </div>
+    <div class="top-social">
+      <a href="https://t.me/aqva_tic" target="_blank">Telegram</a>
+      <a href="mailto:onkabanov@yandex.ru">Email</a>
+    </div>
+  </div>
+</div>
+
+<!-- Навигация -->
+<header>
+  <nav>
+    <div class="logo">Кабанов Олег</div>
+    <div class="menu-toggle" id="menuToggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a href="#projects">Проекты</a>
+      <a href="#services">Услуги</a>
+      <a href="#process">Процесс</a>
+      <a href="#contact">Контакты</a>
+    </div>
+  </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero-content">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Открыт для новых проектов · Июль 2026
+    </div>
+    <h1>
+      Создаю цифровые продукты,<br>
+      которые любят пользователи
+    </h1>
+    <p>
+      Привет, я Олег Кабанов — продуктовый дизайнер с опытом работы над цифровыми сервисами.
+      Помогаю стартапам и компаниям превращать сложные идеи в понятные,
+      красивые и работающие интерфейсы.
+    </p>
+    <div class="hero-cta">
+      <a href="#projects" class="btn btn-gold">Смотреть работы →</a>
+      <a href="#contact" class="btn btn-outline">Связаться со мной</a>
+    </div>
+  </div>
+</section>
+
+<!-- Проекты -->
+<section id="projects">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Избранные проекты</span>
+      <h2 class="section-title">Кейсы, которыми горжусь</h2>
+      <p class="section-subtitle">
+        От первых набросков до релиза — каждый проект это история
+        о том, как дизайн решает реальные бизнес-задачи.
+      </p>
+    </div>
+
+    <div class="projects-grid">
+      <div class="project-card reveal">
+        <div class="project-image" style="background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80');"></div>
+        <div class="project-info">
+          <span class="project-tag">Fintech · Mobile</span>
+          <h3>NeoBank — мобильный банк</h3>
+          <p>Редизайн приложения для 2 млн пользователей. Конверсия в открытие счёта выросла на 38%.</p>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div class="project-image" style="background-image: url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80');"></div>
+        <div class="project-info">
+          <span class="project-tag">SaaS · Web</span>
+          <h3>Taskly — система управления</h3>
+          <p>Дизайн-система и ключевые экраны B2B-платформы. Сократили время онбординга в 2 раза.</p>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div class="project-image" style="background-image: url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80');"></div>
+        <div class="project-info">
+          <span class="project-tag">E-commerce · UX</span>
+          <h3>GreenMarket — маркетплейс</h3>
+          <p>UX-аудит и редизайн checkout-пути. Средний чек вырос на 22%, отказы в корзине снизились на 41%.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Как было -->
+<section class="how-it-was">
+  <div class="container">
+    <div class="how-content">
+      <div class="how-text reveal">
+        <span class="section-label">Как было</span>
+        <h3>Задача проекта</h3>
+        <p>
+          Ко мне обратился маркетолог за дизайном для своего клиента.
+          Нужно было сделать посадочную страницу для тестирования трафика.
+        </p>
+        <p>
+          Сергей скинул мне референсы, как видит стиль будущего сайта.
+          Мы обсудили цели, целевую аудиторию и ключевые метрики успеха.
+        </p>
+        <p>
+          Результат превзошёл ожидания — конверсия выросла на 45% по сравнению
+          с предыдущей версией лендинга.
+        </p>
+      </div>
+      <div class="chat-bubbles reveal">
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">М</div>
+            <div>
+              <div class="chat-name">Маркетолог</div>
+              <div class="chat-role">Сергей Петров</div>
+            </div>
+          </div>
+          <div class="chat-text">
+            Сколько будет стоить дизайн с такой структурой?
+          </div>
+        </div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">КО</div>
+            <div>
+              <div class="chat-name">Кабанов Олег</div>
+              <div class="chat-role">Дизайнер</div>
+            </div>
+          </div>
+          <div class="chat-text">
+            Сделаю за 2 недели. Включу исследование, прототип и финальный дизайн.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Услуги -->
+<section id="services">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Что я делаю</span>
+      <h2 class="section-title">Экспертиза и услуги</h2>
+      <p class="section-subtitle">
+        Работаю на стыке дизайна, продукта и бизнеса.
+        Беру задачу от исследования до передачи в разработку.
+      </p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <div class="service-icon"></div>
+        <h3>UX/UI дизайн</h3>
+        <p>Проектирование интерфейсов сайтов и мобильных приложений с фокусом на пользовательский опыт.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-icon">📐</div>
+        <h3>Дизайн-системы</h3>
+        <p>Создание масштабируемых компонентов и гайдлайнов для команд продукта и разработки.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-icon">🔍</div>
+        <h3>UX-исследования</h3>
+        <p>CustDev, юзабилити-тесты, аналитика. Помогаю принимать решения на основе данных, а не догадок.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-icon">🚀</div>
+        <h3>Продуктовый дизайн</h3>
+        <p>Полный цикл работы над продуктом: от стратегии и прототипов до запуска и развития.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Процесс -->
+<section id="process">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Как я работаю</span>
+      <h2 class="section-title">Прозрачный процесс</h2>
+      <p class="section-subtitle">
+        Чёткие этапы, регулярная синхронизация и никаких сюрпризов.
+        Вы всегда знаете, на каком этапе находится проект.
+      </p>
+    </div>
+
+    <div class="process-grid">
+      <div class="process-step reveal">
+        <div class="process-number">01</div>
+        <h3>Бриф и исследование</h3>
+        <p>Погружаюсь в бизнес-задачу, изучаю аудиторию, конкурентов и метрики. Формирую гипотезы.</p>
+      </div>
+      <div class="process-step reveal">
+        <div class="process-number">02</div>
+        <h3>Прототипирование</h3>
+        <p>Создаю wireframes и интерактивные прототипы. Проверяю логику до начала визуального дизайна.</p>
+      </div>
+      <div class="process-step reveal">
+        <div class="process-number">03</div>
+        <h3>Визуальный дизайн</h3>
+        <p>Прорабатываю UI, анимации, микро-взаимодействия. Согласовываем каждый экран итерациями.</p>
+      </div>
+      <div class="process-step reveal">
+        <div class="process-number">04</div>
+        <h3>Передача и запуск</h3>
+        <p>Готовлю спецификацию для разработки, сопровождаю внедрение и помогаю на этапе запуска.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="cta">
+  <div class="container">
+    <div class="cta-box reveal">
+      <span class="section-label">Давайте работать вместе</span>
+      <h2>Есть проект? Напишите мне</h2>
+      <p>
+        Обсудим задачу, сроки и бюджет. Отвечаю в течение дня
+        в рабочие часы.
+      </p>
+      <div class="cta-buttons">
+        <a href="https://t.me/aqva_tic" target="_blank" rel="noopener" class="btn btn-gold">
+          ✈️ Написать в Telegram
+        </a>
+        <a href="mailto:onkabanov@yandex.ru" class="btn btn-outline">
+          ✉️ Отправить Email
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    © 2026 Кабанов Олег · Сделано с ❤️ и вниманием к деталям
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  const menuToggle = document.getElementById('menuToggle');
+  const navLinks = document.getElementById('navLinks');
+
+  menuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+  });
+
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('active');
+    });
+  });
+</script>
+
+</body>
+</html>
