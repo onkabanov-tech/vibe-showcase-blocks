@@ -3,6 +3,7 @@
 // так что его можно запускать повторно. Не трогает schema_migrations.
 import { getDb } from "./db.js";
 import { nowIso, toIso } from "./time.js";
+import { hashPassword } from "./password.js";
 
 const SERVICES = [
   {
@@ -80,6 +81,7 @@ function run() {
     db.exec("DELETE FROM schedule_blocks");
     db.exec("DELETE FROM work_schedule");
     db.exec("DELETE FROM services");
+    db.exec("DELETE FROM admin_users");
 
     const insertService = db.prepare(`
       INSERT INTO services (name, description, duration_minutes, price, is_active, sort_order, created_at)
@@ -128,13 +130,21 @@ function run() {
       );
     }
 
+    const adminUsername = process.env.SEED_ADMIN_USERNAME || "admin";
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || "changeme";
+    db.prepare(`
+      INSERT INTO admin_users (username, password_hash, created_at) VALUES (?, ?, ?)
+    `).run(adminUsername, hashPassword(adminPassword), now);
+
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
   }
 
-  console.log("Тестовые данные добавлены: services, work_schedule, clients, bookings.");
+  console.log(
+    "Тестовые данные добавлены: services, work_schedule, clients, bookings, admin_users.",
+  );
 }
 
 run();
