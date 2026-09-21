@@ -9,10 +9,23 @@
 
 ## 1. Область охвата и допущения
 
-- Бизнес — один специалист (в прототипе «Кабанов Олег»). Схема не вводит
-  отдельную сущность «мастер»: график работы и блокировки — общие для всей
-  системы. Если специалистов станет несколько, это потребует пересмотра
-  (см. раздел 9, пункт 1).
+> **Обновление после первой версии документа.** Изначально здесь было
+> зафиксировано решение не заводить отдельную таблицу `masters` (один
+> специалист на весь бизнес) и не давать клиентам аккаунтов. При сборке
+> API поверх этой схемы оба допущения снял сам заказчик — понадобились
+> «список мастеров»/«управление мастерами» и полноценные «регистрация,
+> вход, выход» для клиентов. Ниже — уже актуальное описание с `masters`
+> и аккаунтами клиентов; исходные формулировки лежат в истории git и в
+> `docs/db-notes.md` (журнал изменений), если нужно вспомнить, почему
+> было так, как было.
+
+- Бизнес может иметь несколько мастеров (`masters`); график работы и
+  блокировки времени привязаны к конкретному мастеру, не общие на всю
+  систему.
+- Клиенты — полноценные аккаунты с email и хешем пароля, а не только
+  «имя+контакт», введённые разово при записи (как было в исходном
+  прототипе `prototypes/booking-prototype/`). Экрана регистрации/входа в
+  самом DC-прототипе нет — это уже развитие продукта поверх него.
 - Прототип не содержит экрана логина в админку, но пароль явно должен
   где-то храниться в виде хеша (требование 5) — значит, для реальной
   системы нужна таблица администраторов. Она добавлена как минимально
@@ -39,15 +52,20 @@
 | Таблица | Назначение |
 |---|---|
 | `services` | Каталог услуг (то, что показано на лендинге и в шаге 1 записи) |
-| `clients` | Контактные данные тех, кто записывается |
-| `bookings` | Записи на консультацию — основная таблица прототипа |
-| `work_schedule` | Регулярный график работы по дням недели |
-| `schedule_blocks` | Разовые блокировки времени сверх регулярного графика (отпуск, личные дела, ручной холд) |
+| `masters` | Мастера/специалисты, принимающие записи |
+| `clients` | Аккаунты клиентов — имя, контакт, email и хеш пароля |
+| `sessions` | Токены сессий для входа клиентов и администраторов |
+| `bookings` | Записи на консультацию — какой клиент, к какому мастеру, на когда |
+| `booking_services` | Связь «запись → одна или несколько услуг» (многие-ко-многим) |
+| `work_schedule` | Регулярный график работы мастера по дням недели |
+| `schedule_blocks` | Разовые блокировки времени мастера сверх регулярного графика |
+| `slot_holds` | Временное удержание слота на время оформления записи |
+| `slot_hold_services` | Связь «удержание → одна или несколько услуг» |
 | `admin_users` | Учётные записи администратора для входа в панель |
 
 Специально **нет** таблицы «свободные слоты» — по требованию 3 они
-считаются в момент запроса из `work_schedule`, `bookings` и
-`schedule_blocks` (алгоритм — раздел 6).
+считаются в момент запроса из `work_schedule`, `bookings`,
+`schedule_blocks` и `slot_holds` (алгоритм — раздел 6).
 
 ## 4. Таблицы подробно
 
@@ -64,54 +82,135 @@
 | `sort_order` | INTEGER | да, default 0 | — | Порядок карточек на лендинге |
 | `created_at` | TEXT | да | — | ISO-8601, см. раздел 5 |
 
-### 4.2 `clients` — Клиенты
+### 4.2 `masters` — Мастера
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
-| `name` | TEXT | да | — | «Ваше имя» из формы записи |
-| `contact` | TEXT | да | — | «Телефон или email» — одно свободное поле, как в форме прототипа |
+| `name` | TEXT | да | — | Имя мастера |
+| `description` | TEXT | нет | — | Короткое описание/специализация |
+| `is_active` | INTEGER (0/1) | да, default 1 | — | Мягкое скрытие вместо удаления — на мастера могут ссылаться записи |
 | `created_at` | TEXT | да | — | ISO-8601 |
 
-### 4.3 `bookings` — Записи
+### 4.3 `clients` — Клиенты
+
+| Поле | Тип | Обязательное | Ключ | Описание |
+|---|---|---|---|---|
+| `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
+| `name` | TEXT | да | — | Имя клиента |
+| `contact` | TEXT | да | — | «Телефон или email» — контакт для связи (не обязательно совпадает с `email`-логином) |
+| `email` | TEXT | да на уровне приложения* | UNIQUE | Логин для входа |
+| `password_hash` | TEXT | да на уровне приложения* | — | Хеш пароля (см. `src/password.js`, scrypt). Самого пароля в базе нет |
+| `created_at` | TEXT | да | — | ISO-8601 |
+
+`*` — на уровне колонки `email`/`password_hash` допускают `NULL`: так
+исторически устроены самые первые демо-клиенты прототипа (имя+контакт без
+аккаунта). Все новые клиенты создаются только через `POST /api/auth/register`,
+который требует оба поля и хеширует пароль до вставки — так что на практике
+после `npm run db:fresh` пустых значений нет. Подробности и почему это не
+переросло в отдельную таблицу — `docs/db-notes.md`.
+
+### 4.4 `sessions` — Сессии (клиенты и администраторы)
+
+| Поле | Тип | Обязательное | Ключ | Описание |
+|---|---|---|---|---|
+| `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
+| `token` | TEXT | да | UNIQUE | Значение из заголовка `Authorization: Bearer <token>` |
+| `actor_type` | TEXT | да | CHECK IN (`client`,`admin`) | Кто владелец сессии |
+| `actor_id` | INTEGER | да | — (см. ниже) | id из `clients` или `admin_users`, в зависимости от `actor_type` |
+| `created_at` | TEXT | да | — | ISO-8601 |
+| `expires_at` | TEXT | да | — | ISO-8601; после этого момента сессия недействительна |
+
+У `actor_id` намеренно нет `FOREIGN KEY` — он указывает то в `clients`, то
+в `admin_users` в зависимости от `actor_type` (полиморфная ссылка), а
+SQLite не умеет условные внешние ключи. Целостность здесь поддерживает
+код (`src/sessions.js`, `src/authz.js`), а не сама схема.
+
+### 4.5 `bookings` — Записи
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Внутренний ключ |
 | `code` | TEXT | да | UNIQUE | Номер записи, видимый пользователю («BK-1042») |
 | `client_id` | INTEGER | да | FK → `clients.id` | Кто записался |
-| `service_id` | INTEGER | да | FK → `services.id` | На какую услугу |
-| `starts_at` | TEXT | да | — | Начало консультации, ISO-8601 UTC |
-| `ends_at` | TEXT | да | — | Конец консультации = `starts_at` + длительность услуги **на момент создания записи** (см. раздел 9, пункт 6) |
+| `master_id` | INTEGER | да на уровне приложения* | FK → `masters.id` | К какому мастеру |
+| `starts_at` | TEXT | да | — | Начало записи, ISO-8601 UTC |
+| `ends_at` | TEXT | да | — | Конец записи = `starts_at` + суммарная длительность выбранных услуг **на момент создания записи** (см. раздел 9, пункт 6) |
 | `status` | TEXT | да, default `'pending'` | CHECK IN (`pending`,`confirmed`,`cancelled`) | Фиксированный набор статусов (требование 4) |
 | `comment` | TEXT | нет | — | «Комментарий (необязательно)» |
 | `created_at` | TEXT | да | — | ISO-8601 |
-| `updated_at` | TEXT | да | — | Обновляется при смене статуса |
+| `updated_at` | TEXT | да | — | Обновляется при смене статуса/переносе |
 
-FK `service_id` — `ON DELETE RESTRICT` (нельзя удалить услугу, на которую
-есть записи; для скрытия использовать `services.is_active`).
+`*` — колонка `master_id` тоже nullable на уровне схемы по той же причине,
+что и `clients.email`: появилась миграцией `0002_masters_accounts_holds.sql`
+поверх уже существующих записей без мастера. Приложение (`src/bookings.js`)
+всегда передаёт `master_id` при создании записи.
 
-### 4.4 `work_schedule` — График работы
+Какая услуга (или услуги) входят в запись — смотрите `booking_services`
+ниже; в `bookings` больше нет колонки `service_id`, одна запись может
+включать несколько услуг сразу.
+
+### 4.6 `booking_services` — Услуги внутри записи
+
+| Поле | Тип | Обязательное | Ключ | Описание |
+|---|---|---|---|---|
+| `booking_id` | INTEGER | да | PK (составной), FK → `bookings.id` ON DELETE CASCADE | Какая запись |
+| `service_id` | INTEGER | да | PK (составной), FK → `services.id` ON DELETE RESTRICT | Какая услуга входит в запись |
+
+Суммарная длительность и стоимость записи — это `SUM(duration_minutes)` /
+`SUM(price)` по всем строкам с этим `booking_id`, а не отдельное поле.
+
+### 4.7 `work_schedule` — График работы мастера
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
-| `weekday` | INTEGER | да | UNIQUE, CHECK 0–6 | День недели, 0 = воскресенье … 6 = суббота |
-| `start_time` | TEXT | да | — | Начало рабочего дня, `HH:MM` |
-| `end_time` | TEXT | да | — | Конец рабочего дня, `HH:MM` |
-| `is_working` | INTEGER (0/1) | да, default 1 | — | `0` — выходной день (запись без удаления строки, например для воскресенья) |
+| `master_id` | INTEGER | да на уровне приложения* | FK → `masters.id` | Чей график |
+| `weekday` | INTEGER | да | UNIQUE вместе с `master_id`, CHECK 0–6 | День недели, 0 = воскресенье … 6 = суббота |
+| `start_time` | TEXT | да | — | Начало рабочего дня мастера, `HH:MM` (местное время салона) |
+| `end_time` | TEXT | да | — | Конец рабочего дня мастера, `HH:MM` |
+| `is_working` | INTEGER (0/1) | да, default 1 | — | `0` — выходной день (запись без удаления строки) |
 
-### 4.5 `schedule_blocks` — Блокировки времени
+`*` — nullable по той же причине, что и выше; уникальность теперь по паре
+`(master_id, weekday)`, а не по одному `weekday` — у каждого мастера свой
+график.
+
+### 4.8 `schedule_blocks` — Блокировки времени мастера
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
+| `master_id` | INTEGER | да на уровне приложения* | FK → `masters.id` | Чья блокировка |
 | `starts_at` | TEXT | да | — | Начало блокировки, ISO-8601 UTC |
 | `ends_at` | TEXT | да | — | Конец блокировки, ISO-8601 UTC |
 | `reason` | TEXT | нет | — | Причина для админа («отпуск», «личное») |
 | `created_at` | TEXT | да | — | ISO-8601 |
 
-### 4.6 `admin_users` — Администраторы
+### 4.9 `slot_holds` — Удержание слота на время оформления
+
+| Поле | Тип | Обязательное | Ключ | Описание |
+|---|---|---|---|---|
+| `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
+| `master_id` | INTEGER | да | FK → `masters.id` | На какого мастера |
+| `client_id` | INTEGER | да | FK → `clients.id` | Кто удерживает слот |
+| `starts_at` | TEXT | да | — | Начало удерживаемого интервала, ISO-8601 UTC |
+| `ends_at` | TEXT | да | — | Конец = `starts_at` + суммарная длительность выбранных услуг |
+| `expires_at` | TEXT | да | — | Момент, после которого удержание больше не действует |
+| `created_at` | TEXT | да | — | ISO-8601 |
+
+Строка не обновляется — по истечении `expires_at` она либо явно удаляется
+(`DELETE /api/holds/:id`), либо потребляется при создании записи
+(`POST /api/bookings` с `holdId`), либо просто чистится подчисткой
+устаревших удержаний (см. раздел 6).
+
+### 4.10 `slot_hold_services` — Услуги внутри удержания
+
+| Поле | Тип | Обязательное | Ключ | Описание |
+|---|---|---|---|---|
+| `hold_id` | INTEGER | да | PK (составной), FK → `slot_holds.id` ON DELETE CASCADE | Какое удержание |
+| `service_id` | INTEGER | да | PK (составной), FK → `services.id` ON DELETE RESTRICT | Какая услуга входит в удержание |
+
+### 4.11 `admin_users` — Администраторы
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
@@ -151,42 +250,69 @@ FK `service_id` — `ON DELETE RESTRICT` (нельзя удалить услуг
 
 ## 6. Вычисление свободных слотов (без готовой таблицы)
 
-Свободное время на дату *D* для услуги с длительностью *M* минут
-получается на лету:
+Свободное время мастера *K* на дату *D* для набора выбранных услуг с
+суммарной длительностью *M* минут (`M = Σ services.duration_minutes` по
+всем выбранным услугам) получается на лету:
 
-1. Взять `work_schedule` по дню недели даты *D* → если `is_working = 0`,
-   свободных слотов нет; иначе получить `start_time`/`end_time` этого дня.
-2. Разбить интервал `[start_time, end_time)` даты *D* на потенциальные
-   слоты с шагом длительности услуги *M*.
-3. Убрать из потенциальных слотов те, что пересекаются с существующими
-   записями (`bookings`, где `status <> 'cancelled'` и `starts_at/ends_at`
-   пересекаются со слотом) — эти интервалы уже заняты клиентами.
-4. Убрать слоты, пересекающиеся с `schedule_blocks` на дату *D* — это уже
-   не бронирования клиентов, а недоступность самого специалиста.
-5. Оставшиеся слоты — то, что показывается на Шаге 3 («Время»). Отменённые
-   записи (`status = 'cancelled'`) не блокируют время — оно снова
-   становится доступным.
+1. Взять `work_schedule` мастера *K* по дню недели даты *D* → если строки
+   нет или `is_working = 0`, свободных слотов нет; иначе получить
+   `start_time`/`end_time` этого дня (местное время салона) и перевести их
+   в UTC (`salonLocalToUtcIso`, см. раздел 5).
+2. Подчистить просроченные `slot_holds` (`expires_at <= now`) — лениво,
+   прямо перед расчётом (плюс отдельная периодическая подчистка в
+   `server/src/index.js`, см. `docs/db-notes.md`).
+3. Разбить интервал `[start_time, end_time)` даты *D* на потенциальные
+   слоты с шагом *M* минут.
+4. Убрать из потенциальных слотов те, что пересекаются с существующими
+   записями этого мастера (`bookings`, где `status <> 'cancelled'`) — эти
+   интервалы уже заняты клиентами.
+5. Убрать слоты, пересекающиеся с `schedule_blocks` этого мастера — это
+   недоступность самого мастера, а не чья-то запись.
+6. Убрать слоты, пересекающиеся с ещё не истёкшими `slot_holds` этого
+   мастера — эти интервалы прямо сейчас оформляет другой клиент.
+7. Оставшиеся слоты — то, что возвращает
+   `GET /api/masters/:masterId/availability`. Отменённые записи
+   (`status = 'cancelled'`) и истёкшие удержания не блокируют время — оно
+   снова становится доступным.
 
 Ничего из этого не материализуется в отдельную таблицу — источники
-правды всегда `work_schedule`, `bookings`, `schedule_blocks` (требование 3).
+правды всегда `work_schedule`, `bookings`, `schedule_blocks` и
+`slot_holds` (требование 3). Реализация — `server/src/availability.js`.
 
 ## 7. Уникальные ограничения и индексы
 
 | Ограничение / индекс | Простыми словами | Что сломается без него |
 |---|---|---|
 | `UNIQUE(bookings.code)` | Номер записи, который видит клиент, должен быть один на каждую запись | Два клиента могли бы получить один и тот же номер BK-хххх — открыв «свою» запись, увидели бы чужую |
-| Частичный `UNIQUE(bookings.starts_at) WHERE status <> 'cancelled'` | На одно и то же время не может быть двух активных записей | Двойной клик по «Подтвердить запись» или гонка запросов создали бы два клиента на один и тот же слот — специалист физически не сможет принять обоих (это защита от точного совпадения времени начала; частичные пересечения интервалов разной длины всё ещё нужно проверять в коде приложения перед вставкой — SQLite не умеет ограничивать произвольное пересечение интервалов на уровне схемы) |
+| Частичный `UNIQUE(bookings.master_id, starts_at) WHERE status <> 'cancelled'` | У одного мастера на одно и то же время не может быть двух активных записей | Двойной клик по «Подтвердить запись» или гонка запросов создали бы два клиента на один и тот же слот одного мастера — он физически не сможет принять обоих. Ограничение по паре с `master_id`, а не по одному `starts_at`, — иначе два *разных* мастера не могли бы принимать в одно и то же время. Это защита только от точного совпадения времени начала; частичные пересечения интервалов разной длины всё ещё нужно проверять в коде приложения перед вставкой (`assertSlotIsFree` в `server/src/availability.js`) — SQLite не умеет ограничивать произвольное пересечение интервалов на уровне схемы |
 | Индекс `bookings(status)` | Ускоряет подсчёт «всего/ожидают/подтверждено» в админке | При росте числа записей подсчёт статусов станет полным сканированием таблицы на каждое открытие админки |
-| Индекс `bookings(starts_at)` | Ускоряет поиск записей на конкретную дату/диапазон при расчёте свободных слотов | Каждый расчёт доступного времени сканировал бы все записи, а не только записи нужного дня |
+| Индекс `bookings(master_id, starts_at)` | Ускоряет поиск записей конкретного мастера на дату/диапазон при расчёте свободных слотов | Каждый расчёт доступного времени сканировал бы записи всех мастеров, а не только нужного |
 | Индекс `bookings(client_id)` | Ускоряет поиск истории записей конкретного клиента | SQLite не индексирует внешние ключи автоматически — без индекса это полное сканирование таблицы |
-| Индекс `bookings(service_id)` | Ускоряет join с услугами и статистику по услугам | То же — join и подсчёты по услуге станут полным сканированием |
 | `UNIQUE(services.name)` | В каталоге не может быть двух услуг с одинаковым названием | Админ мог бы случайно завести дубликат — на лендинге появятся две одинаковые карточки, а статистика по «услуге» размажется между двумя id |
-| `UNIQUE(work_schedule.weekday)` | На каждый день недели — ровно одно правило графика | Два конфликтующих правила на один день сделают расчёт свободных слотов недетерминированным (непонятно, какое правило применять) |
+| `UNIQUE(work_schedule.master_id, weekday)` | На каждый день недели у каждого мастера — ровно одно правило графика | Два конфликтующих правила на один день одного мастера сделают расчёт свободных слотов недетерминированным |
 | `UNIQUE(admin_users.username)` | Логин однозначно определяет одну учётную запись | При входе или сбросе пароля было бы неясно, какую из нескольких учёток с одинаковым логином использовать |
-| Индекс `schedule_blocks(starts_at, ends_at)` | Ускоряет поиск блокировок, пересекающих нужный день | Расчёт свободных слотов сканировал бы все блокировки за всё время вместо нужного диапазона |
+| `UNIQUE(clients.email)` | Email клиента — уникальный логин | Регистрация второго аккаунта с тем же email сделала бы вход неоднозначным — непонятно, в какой аккаунт пускать |
+| `UNIQUE(sessions.token)` | Токен сессии однозначно определяет, кто сделал запрос | Коллизия токенов пустила бы одного пользователя под чужой сессией |
+| Индекс `sessions(actor_type, actor_id)` | Быстро найти/отозвать все сессии конкретного клиента или админа | Логаут «везде» или проверка активных сессий сканировали бы всю таблицу |
+| Индекс `sessions(expires_at)` | Ускоряет периодическую подчистку истёкших сессий | Фоновая очистка (`server/src/index.js`) сканировала бы все сессии, а не только просроченные |
+| Индекс `schedule_blocks(master_id, starts_at, ends_at)` | Ускоряет поиск блокировок конкретного мастера, пересекающих нужный день | Расчёт свободных слотов сканировал бы блокировки всех мастеров за всё время |
+| Индекс `slot_holds(master_id, starts_at, ends_at)` | Ускоряет поиск активных удержаний конкретного мастера на нужный диапазон | Расчёт слотов и создание нового удержания сканировали бы все удержания всех мастеров |
+| Индекс `slot_holds(expires_at)` | Ускоряет подчистку истёкших удержаний | Автоматическое «освобождение» слота после истечения удержания (требование 4) стало бы полным сканированием на каждую подчистку |
 | Индекс `clients(contact)` | Ускоряет поиск клиента/его записей по телефону или email | Поиск «у нас уже был этот человек» станет полным сканированием таблицы клиентов |
 
+`booking_services` и `slot_hold_services` используют составной
+`PRIMARY KEY (booking_id, service_id)` / `(hold_id, service_id)` — это
+одновременно и уникальность («одна и та же услуга не может быть добавлена
+в одну запись/удержание дважды»), и готовый индекс для быстрого поиска
+услуг по записи/удержанию.
+
 ## 8. Приложение: DDL (справочно)
+
+Ниже — итоговая схема (эквивалент `0001_init.sql` +
+`0002_masters_accounts_holds.sql` вместе), как если бы её писали с нуля.
+Фактические файлы миграций в `server/src/migrations/` устроены иначе —
+второй файл дополняет первый через `ALTER TABLE`, а не переписывает его
+(см. `docs/db-notes.md` про то, почему некоторые колонки там nullable).
 
 ```sql
 CREATE TABLE services (
@@ -201,19 +327,42 @@ CREATE TABLE services (
 );
 CREATE UNIQUE INDEX ux_services_name ON services(name);
 
+CREATE TABLE masters (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  description TEXT,
+  is_active   INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL
+);
+
 CREATE TABLE clients (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  name       TEXT NOT NULL,
-  contact    TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  name           TEXT NOT NULL,
+  contact        TEXT NOT NULL,
+  email          TEXT,
+  password_hash  TEXT,
+  created_at     TEXT NOT NULL
 );
 CREATE INDEX ix_clients_contact ON clients(contact);
+CREATE UNIQUE INDEX ux_clients_email ON clients(email);
+
+CREATE TABLE sessions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  token      TEXT NOT NULL,
+  actor_type TEXT NOT NULL CHECK (actor_type IN ('client', 'admin')),
+  actor_id   INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX ux_sessions_token ON sessions(token);
+CREATE INDEX ix_sessions_actor ON sessions(actor_type, actor_id);
+CREATE INDEX ix_sessions_expires_at ON sessions(expires_at);
 
 CREATE TABLE bookings (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   code        TEXT NOT NULL,
   client_id   INTEGER NOT NULL REFERENCES clients(id),
-  service_id  INTEGER NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+  master_id   INTEGER REFERENCES masters(id),
   starts_at   TEXT NOT NULL,
   ends_at     TEXT NOT NULL,
   status      TEXT NOT NULL DEFAULT 'pending'
@@ -223,30 +372,55 @@ CREATE TABLE bookings (
   updated_at  TEXT NOT NULL
 );
 CREATE UNIQUE INDEX ux_bookings_code ON bookings(code);
-CREATE UNIQUE INDEX ux_bookings_active_start
-  ON bookings(starts_at) WHERE status <> 'cancelled';
-CREATE INDEX ix_bookings_status     ON bookings(status);
-CREATE INDEX ix_bookings_starts_at  ON bookings(starts_at);
-CREATE INDEX ix_bookings_client_id  ON bookings(client_id);
-CREATE INDEX ix_bookings_service_id ON bookings(service_id);
+CREATE UNIQUE INDEX ux_bookings_master_active_start
+  ON bookings(master_id, starts_at) WHERE status <> 'cancelled';
+CREATE INDEX ix_bookings_status ON bookings(status);
+CREATE INDEX ix_bookings_master_starts_at ON bookings(master_id, starts_at);
+CREATE INDEX ix_bookings_client_id ON bookings(client_id);
+
+CREATE TABLE booking_services (
+  booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+  PRIMARY KEY (booking_id, service_id)
+);
 
 CREATE TABLE work_schedule (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  master_id  INTEGER REFERENCES masters(id),
   weekday    INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
   start_time TEXT NOT NULL,
   end_time   TEXT NOT NULL,
   is_working INTEGER NOT NULL DEFAULT 1
 );
-CREATE UNIQUE INDEX ux_work_schedule_weekday ON work_schedule(weekday);
+CREATE UNIQUE INDEX ux_work_schedule_master_weekday ON work_schedule(master_id, weekday);
 
 CREATE TABLE schedule_blocks (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  master_id  INTEGER REFERENCES masters(id),
   starts_at  TEXT NOT NULL,
   ends_at    TEXT NOT NULL,
   reason     TEXT,
   created_at TEXT NOT NULL
 );
-CREATE INDEX ix_schedule_blocks_range ON schedule_blocks(starts_at, ends_at);
+CREATE INDEX ix_schedule_blocks_master_range ON schedule_blocks(master_id, starts_at, ends_at);
+
+CREATE TABLE slot_holds (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  master_id  INTEGER NOT NULL REFERENCES masters(id),
+  client_id  INTEGER NOT NULL REFERENCES clients(id),
+  starts_at  TEXT NOT NULL,
+  ends_at    TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX ix_slot_holds_master_range ON slot_holds(master_id, starts_at, ends_at);
+CREATE INDEX ix_slot_holds_expires_at ON slot_holds(expires_at);
+
+CREATE TABLE slot_hold_services (
+  hold_id    INTEGER NOT NULL REFERENCES slot_holds(id) ON DELETE CASCADE,
+  service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+  PRIMARY KEY (hold_id, service_id)
+);
 
 CREATE TABLE admin_users (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -260,11 +434,11 @@ CREATE UNIQUE INDEX ux_admin_users_username ON admin_users(username);
 
 ## 9. Спорные решения
 
-1. **Нет таблицы `masters`.** Прототип — это один специалист, поэтому
-   график и блокировки сделаны глобальными, а не привязанными к
-   мастеру. Плюс — проще схема. Минус — если бизнес вырастет до
-   нескольких специалистов, `work_schedule`, `schedule_blocks` и
-   `bookings` придётся дополнить полем `master_id`.
+1. ~~Нет таблицы `masters`.~~ **Устарело.** Так было в первой версии
+   схемы (один специалist, глобальный график). При сборке API это решение
+   явно отменили: добавлена таблица `masters`, `work_schedule`/
+   `schedule_blocks`/`bookings` получили `master_id`. Оставляю пункт как
+   след истории — см. `docs/db-notes.md`, почему передумали.
 
 2. **`clients.contact` — одно свободное текстовое поле, без уникальности.**
    В форме записи одно поле «Телефон или email» — схема повторяет это
@@ -317,3 +491,60 @@ CREATE UNIQUE INDEX ux_admin_users_username ON admin_users(username);
    зависеть от порядка вставки строк. `admin_users` — потому что
    требование 5 (поле для хеша пароля) осмысленно только при наличии
    таблицы учётных записей, хотя экрана логина в прототипе нет.
+
+9. **`clients.email`/`password_hash` и `bookings.master_id` — nullable на
+   уровне колонки.** По-хорошему это должно быть `NOT NULL`: у любого
+   реального клиента теперь есть аккаунт, у любой новой записи — мастер.
+   Но обе колонки добавлены `ALTER TABLE ... ADD COLUMN` поверх таблиц,
+   где уже были строки без этих данных (демо-клиенты изначального
+   прототипа, записи без понятия «мастер»). SQLite не даёт задним числом
+   поставить `NOT NULL` на непустую таблицу без значения по умолчанию, а
+   подставлять фиктивное значение ради формальной строгости схемы не
+   стал — это спрятало бы реальные пропуски данных за фальшивым «not
+   null». Обязательность обеспечивает код (`src/validation.js`,
+   `src/bookings.js`) на границе API. Подробности — `docs/db-notes.md`.
+
+10. **Одна запись/удержание — несколько услуг через `booking_services`/
+    `slot_hold_services`, а не одна колонка `service_id`.** Изначально в
+    `bookings` был единственный `service_id`. Когда понадобилось
+    «удержание слота... с учётом суммарной длительности выбранных услуг»,
+    стало ясно, что одна запись должна уметь включать несколько услуг
+    сразу (например, консультацию и разбор прототипа одним визитом).
+    Связывающая таблица — стандартный способ выразить «многие ко многим»
+    без денормализации в духе `service_ids TEXT` со списком id в строке
+    (такое поле нельзя было бы ни проиндексировать, ни защитить `FOREIGN
+    KEY`).
+
+11. **`slot_holds` — отдельная таблица, а не запись во «временном»
+    статусе внутри `bookings`.** Можно было бы заводить `bookings` сразу
+    со статусом вроде `held` и чистить их по таймауту. Не стал: у
+    удержания принципиально другой жизненный цикл (живёт минуты, не
+    видно клиенту как «моя запись», не должно попадать в списки/историю
+    записей) и другие поля (`expires_at`, которого у записи нет). Хранить
+    их вместе означало бы либо постоянно фильтровать `bookings` по статусу
+    везде, где выводятся реальные записи, либо держать в одной таблице
+    сущности с разным смыслом. Отдельная таблица + отдельная
+    `slot_hold_services` — чище, а частичный `UNIQUE`-индекс на
+    `bookings` при этом продолжает защищать только настоящие записи.
+
+12. **`sessions` — одна таблица на клиентов и админов, без `FOREIGN KEY`
+    на `actor_id`.** Мог быть `client_sessions` + `admin_sessions`
+    отдельно (тогда `actor_id` можно было бы связать `FOREIGN KEY`) или
+    JWT вместо серверных сессий вовсе. Общая таблица выбрана, потому что
+    логика входа/выхода/проверки токена у обеих ролей идентична, а
+    JWT — нет, потому что «выход» должен реально аннулировать доступ
+    (у JWT без chёрного списка это невозможно, а список токенов —
+    это, по сути, та же таблица `sessions`). Плата — `actor_id` не
+    защищён `FOREIGN KEY` на уровне схемы (SQLite не умеет условные
+    внешние ключи «то на одну таблицу, то на другую»); ссылочную
+    целостность здесь поддерживает только код (`src/sessions.js`,
+    `src/authz.js`), а не сама база.
+
+13. **Часовой пояс салона — константа в `.env`
+    (`SALON_UTC_OFFSET_MINUTES`), а не колонка в БД.** Раздел 9 (было)
+    уже фиксировал допущение об одном часовом поясе на весь бизнес — оно
+    не изменилось с приходом нескольких мастеров: все мастера одного
+    бизнеса по-прежнему работают в одном городе/поясе. Если это когда-то
+    перестанет быть так (мастера в разных часовых поясах), пояс нужно
+    будет перенести в `masters.timezone_offset_minutes` — это добавление
+    колонки, не переработка схемы.

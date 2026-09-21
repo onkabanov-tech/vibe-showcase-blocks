@@ -6,6 +6,7 @@
     "node": ">=22.5.0"
   },
   "scripts": {
+    "start": "node src/index.js",
     "migrate": "node src/migrate.js",
     "db:reset": "node src/reset.js",
     "seed": "node src/seed.js",
