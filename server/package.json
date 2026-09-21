@@ -7,7 +7,8 @@
   },
   "scripts": {
     "migrate": "node src/migrate.js",
+    "db:reset": "node src/reset.js",
     "seed": "node src/seed.js",
-    "db:reset": "npm run migrate && npm run seed"
+    "db:fresh": "npm run db:reset && npm run seed"
   }
 }
