@@ -3,7 +3,7 @@ import { getDb } from "./db.js";
 import { nowIso, toIso } from "./time.js";
 import { getServicesByIds } from "./services.js";
 import { getMasterOrThrow } from "./masters.js";
-import { assertSlotIsFree } from "./availability.js";
+import { assertSlotIsFree, slotTakenError } from "./availability.js";
 import { purgeExpiredHolds, getHoldForClient } from "./holds.js";
 import { ApiError } from "./http/respond.js";
 
@@ -59,39 +59,68 @@ function generateTempCode() {
   return `tmp-${randomBytes(8).toString("hex")}`;
 }
 
+// Срабатывает и на "лишнюю подстраховку" — частичный уникальный индекс
+// ux_bookings_master_active_start (docs/db-schema.md §7), и на настоящую
+// защиту — триггеры 0003_no_overlap_triggers.sql (RAISE(ABORT,
+// 'booking_overlap')). И то, и другое — один и тот же смысл: "это время
+// у этого мастера уже занято", поэтому оба ведут к одному 409 с готовым
+// списком ближайшего свободного времени, а не к сырому тексту ошибки БД.
+function isBookingOverlapError(error) {
+  return (
+    error.message === "booking_overlap" ||
+    String(error.message).includes("UNIQUE constraint failed: bookings")
+  );
+}
+
 export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId, comment }) {
-  purgeExpiredHolds();
   getMasterOrThrow(masterId, { requireActive: true });
-
-  let hold = null;
-  if (holdId != null) {
-    hold = getHoldForClient(holdId, clientId);
-    if (!hold) throw new ApiError(409, "hold_expired", "Удержание слота истекло, выберите время заново");
-    const heldServiceIds = getDb()
-      .prepare("SELECT service_id FROM slot_hold_services WHERE hold_id = ?")
-      .all(holdId)
-      .map((r) => r.service_id)
-      .sort((a, b) => a - b);
-    const requestedSorted = [...serviceIds].sort((a, b) => a - b);
-    if (
-      hold.master_id !== masterId ||
-      hold.starts_at !== startsAt ||
-      JSON.stringify(heldServiceIds) !== JSON.stringify(requestedSorted)
-    ) {
-      throw new ApiError(409, "hold_mismatch", "Параметры записи не совпадают с удержанием слота");
-    }
-  }
-
   const services = getServicesByIds(serviceIds);
   const totalDurationMinutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
   const endsAt = toIso(new Date(Date.parse(startsAt) + totalDurationMinutes * 60_000));
 
-  assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId: hold?.id });
-
   const db = getDb();
   const now = nowIso();
-  db.exec("BEGIN");
+
+  // BEGIN IMMEDIATE, а не обычный BEGIN (= BEGIN DEFERRED). Обычная
+  // транзакция берёт блокировку на запись только когда внутри неё
+  // выполнится первая INSERT/UPDATE/DELETE — до этого момента другой
+  // процесс (второй запрос, скрипт, другой воркер) вполне может успеть
+  // прочитать "слот свободен" и начать вставлять свою запись в то же
+  // окно между нашей проверкой и нашей вставкой. IMMEDIATE берёт
+  // RESERVED-блокировку сразу на BEGIN — ещё до первого чтения — поэтому
+  // второй такой же BEGIN IMMEDIATE от другого соединения будет ждать
+  // (или сразу получит SQLITE_BUSY) до конца нашей транзакции. Проверка
+  // "слот свободен" и сама вставка становятся одной неделимой операцией
+  // не только для этого процесса, но и для конкурентных. Триггер
+  // (0003_no_overlap_triggers.sql) — это последний рубеж на случай, если
+  // что-то всё же пройдёт мимо проверки; блокировка транзакции нужна,
+  // чтобы такое "пройдёт мимо" было маловероятным, а не единственной
+  // линией обороны.
+  db.exec("BEGIN IMMEDIATE");
   try {
+    purgeExpiredHolds();
+
+    let hold = null;
+    if (holdId != null) {
+      hold = getHoldForClient(holdId, clientId);
+      if (!hold) throw new ApiError(409, "hold_expired", "Удержание слота истекло, выберите время заново");
+      const heldServiceIds = db
+        .prepare("SELECT service_id FROM slot_hold_services WHERE hold_id = ?")
+        .all(holdId)
+        .map((r) => r.service_id)
+        .sort((a, b) => a - b);
+      const requestedSorted = [...serviceIds].sort((a, b) => a - b);
+      if (
+        hold.master_id !== masterId ||
+        hold.starts_at !== startsAt ||
+        JSON.stringify(heldServiceIds) !== JSON.stringify(requestedSorted)
+      ) {
+        throw new ApiError(409, "hold_mismatch", "Параметры записи не совпадают с удержанием слота");
+      }
+    }
+
+    assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId: hold?.id });
+
     const bookingId = db
       .prepare(
         `INSERT INTO bookings (code, client_id, master_id, starts_at, ends_at, status, comment, created_at, updated_at)
@@ -112,9 +141,7 @@ export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId
     return toClientView(loadBooking(db, bookingId));
   } catch (error) {
     db.exec("ROLLBACK");
-    if (String(error.message).includes("UNIQUE constraint failed: bookings")) {
-      throw new ApiError(409, "slot_taken", "На это время уже есть запись");
-    }
+    if (isBookingOverlapError(error)) throw slotTakenError({ masterId, startsAt, endsAt });
     throw error;
   }
 }
@@ -147,20 +174,26 @@ export function rescheduleBooking({ bookingId, clientId, startsAt }) {
 
   const totalDurationMinutes = loaded.services.reduce((sum, s) => sum + s.duration_minutes, 0);
   const endsAt = toIso(new Date(Date.parse(startsAt) + totalDurationMinutes * 60_000));
-  assertSlotIsFree({ masterId: loaded.booking.master_id, startsAt, endsAt, ignoreBookingId: bookingId });
-
+  const masterId = loaded.booking.master_id;
   const now = nowIso();
+
+  // Тот же принцип BEGIN IMMEDIATE, что и в createBooking: перенос — это
+  // тоже "проверить, что время свободно" + "записать", и должен быть
+  // одной неделимой операцией, а не двумя отдельными шагами с окном
+  // гонки между ними.
+  db.exec("BEGIN IMMEDIATE");
   try {
+    assertSlotIsFree({ masterId, startsAt, endsAt, ignoreBookingId: bookingId });
     db.prepare("UPDATE bookings SET starts_at=?, ends_at=?, status='pending', updated_at=? WHERE id=?").run(
       startsAt,
       endsAt,
       now,
       bookingId,
     );
+    db.exec("COMMIT");
   } catch (error) {
-    if (String(error.message).includes("UNIQUE constraint failed: bookings")) {
-      throw new ApiError(409, "slot_taken", "На это время уже есть запись");
-    }
+    db.exec("ROLLBACK");
+    if (isBookingOverlapError(error)) throw slotTakenError({ masterId, startsAt, endsAt });
     throw error;
   }
   return toClientView(loadBooking(db, bookingId));

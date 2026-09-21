@@ -44,3 +44,10 @@ export function weekdayOfDate(dateStr) {
   const [y, mo, d] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
 }
+
+// "2026-09-28" -> "2026-09-29".
+export function nextDateStr(dateStr) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const next = new Date(Date.UTC(y, mo - 1, d + 1));
+  return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-${pad2(next.getUTCDate())}`;
+}
