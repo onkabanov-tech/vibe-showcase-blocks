@@ -1,0 +1,13 @@
+{
+  "name": "booking-server",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "db:reset": "npm run migrate && npm run seed"
+  }
+}

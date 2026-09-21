@@ -30,3 +30,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend (server/) — окружение и файл базы данных
+.env
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
+server/data/*.sqlite
+server/data/*.sqlite3
+!server/data/.gitkeep
