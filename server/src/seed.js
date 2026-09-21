@@ -37,8 +37,12 @@ const SERVICES = [
 ];
 
 const MASTERS = [
-  { name: "Олег Кабанов", description: "Продуктовый дизайнер — консультации по UX и дизайн-системам." },
-  { name: "Анна Светлова", description: "UX-дизайнер — аудит интерфейсов и прототипов." },
+  {
+    name: "Олег Кабанов",
+    description: "Продуктовый дизайнер — консультации по UX и дизайн-системам.",
+    email: "oleg.kabanov@example.com",
+  },
+  { name: "Анна Светлова", description: "UX-дизайнер — аудит интерфейсов и прототипов.", email: null },
 ];
 
 // weekday: 0 = воскресенье … 6 = суббота, как в docs/db-schema.md.
@@ -119,12 +123,17 @@ function run() {
       db.prepare("SELECT id, name, duration_minutes FROM services").all().map((row) => [row.name, row]),
     );
 
+    // Один мастер с логином (Олег), один без — показывает, что
+    // email/password_hash в masters действительно необязательны: мастер
+    // без учётки по-прежнему обычная запись в каталоге, как и раньше.
+    const masterPassword = process.env.SEED_MASTER_PASSWORD || "changeme";
     const insertMaster = db.prepare(`
-      INSERT INTO masters (name, description, is_active, created_at) VALUES (?, ?, 1, ?)
+      INSERT INTO masters (name, description, email, password_hash, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)
     `);
     const masterByName = new Map();
     for (const m of MASTERS) {
-      const id = insertMaster.run(m.name, m.description, now).lastInsertRowid;
+      const passwordHash = m.email ? hashPassword(masterPassword) : null;
+      const id = insertMaster.run(m.name, m.description, m.email, passwordHash, now).lastInsertRowid;
       masterByName.set(m.name, id);
     }
 
@@ -193,7 +202,7 @@ function run() {
   }
 
   console.log(
-    "Тестовые данные добавлены: services, masters, work_schedule, clients, bookings, booking_services, admin_users.",
+    "Тестовые данные добавлены: services, masters (один с логином), work_schedule, clients, bookings, booking_services, admin_users.",
   );
 }
 

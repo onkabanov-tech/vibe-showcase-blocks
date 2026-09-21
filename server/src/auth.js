@@ -44,6 +44,20 @@ export function loginAdmin({ username, password }) {
   return { session, admin: { id: row.id, username: row.username } };
 }
 
+// Мастера не регистрируются сами — учётку (email/пароль) заводит
+// администратор через POST/PATCH /api/admin/masters (server/src/masters.js),
+// как и с admin_users. Здесь только вход.
+export function loginMaster({ email, password }) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM masters WHERE email = ?").get(email);
+  if (!row || !row.password_hash || !verifyPassword(password, row.password_hash)) {
+    throw new ApiError(401, "invalid_credentials", "Неверный email или пароль");
+  }
+  if (!row.is_active) throw new ApiError(403, "forbidden", "Учётная запись мастера отключена");
+  const session = createSession("master", row.id);
+  return { session, master: { id: row.id, name: row.name, email: row.email } };
+}
+
 export function logout(token) {
   deleteSession(token);
 }

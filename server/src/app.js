@@ -2,20 +2,24 @@ import { createRouter } from "./http/router.js";
 import { sendJson, sendError, ApiError } from "./http/respond.js";
 import { registerAuthRoutes } from "./routes/auth.routes.js";
 import { registerAdminAuthRoutes } from "./routes/adminAuth.routes.js";
+import { registerMasterAuthRoutes } from "./routes/masterAuth.routes.js";
 import { registerCatalogRoutes } from "./routes/catalog.routes.js";
 import { registerAvailabilityRoutes } from "./routes/availability.routes.js";
 import { registerHoldsRoutes } from "./routes/holds.routes.js";
 import { registerBookingsRoutes } from "./routes/bookings.routes.js";
+import { registerMasterRoutes } from "./routes/master.routes.js";
 import { registerAdminRoutes } from "./routes/admin.routes.js";
 
 const router = createRouter();
 router.get("/api/health", (req, res) => sendJson(res, 200, { ok: true }));
 registerAuthRoutes(router);
 registerAdminAuthRoutes(router);
+registerMasterAuthRoutes(router);
 registerCatalogRoutes(router);
 registerAvailabilityRoutes(router);
 registerHoldsRoutes(router);
 registerBookingsRoutes(router);
+registerMasterRoutes(router);
 registerAdminRoutes(router);
 
 export async function handleRequest(req, res) {

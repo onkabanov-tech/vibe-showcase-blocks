@@ -1,5 +1,6 @@
 import { getDb } from "./db.js";
 import { nowIso } from "./time.js";
+import { hashPassword } from "./password.js";
 import { ApiError } from "./http/respond.js";
 
 function serialize(row) {
@@ -7,15 +8,23 @@ function serialize(row) {
     id: row.id,
     name: row.name,
     description: row.description,
+    email: row.email ?? null,
     isActive: !!row.is_active,
   };
+}
+
+function throwIfEmailTaken(error) {
+  if (String(error.message).includes("UNIQUE constraint failed: masters.email")) {
+    throw new ApiError(409, "email_taken", "Этот email уже используется другим мастером");
+  }
+  throw error;
 }
 
 export function listMasters({ includeInactive = false } = {}) {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT id, name, description, is_active FROM masters
+      `SELECT id, name, description, email, is_active FROM masters
        ${includeInactive ? "" : "WHERE is_active = 1"}
        ORDER BY id`,
     )
@@ -33,13 +42,25 @@ export function getMasterOrThrow(id, { requireActive = false } = {}) {
   return row;
 }
 
+// Мастера не регистрируются сами — учётку (email/пароль) заводит и меняет
+// администратор здесь же, при создании/редактировании мастера. Оба поля
+// необязательны: можно завести мастера без входа в систему (как раньше)
+// и включить ему логин позже через updateMaster.
 export function createMaster(input) {
   const db = getDb();
   const now = nowIso();
-  const id = db
-    .prepare("INSERT INTO masters (name, description, is_active, created_at) VALUES (?, ?, ?, ?)")
-    .run(input.name, input.description, input.isActive ? 1 : 0, now).lastInsertRowid;
-  return serialize(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
+  const passwordHash = input.password ? hashPassword(input.password) : null;
+  try {
+    const id = db
+      .prepare(
+        "INSERT INTO masters (name, description, email, password_hash, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(input.name, input.description, input.email ?? null, passwordHash, input.isActive ? 1 : 0, now)
+      .lastInsertRowid;
+    return serialize(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
+  } catch (error) {
+    throwIfEmailTaken(error);
+  }
 }
 
 export function updateMaster(id, patch) {
@@ -50,14 +71,22 @@ export function updateMaster(id, patch) {
   const next = {
     name: patch.name ?? existing.name,
     description: patch.description ?? existing.description,
+    email: patch.email === undefined ? existing.email : patch.email,
+    password_hash: patch.password ? hashPassword(patch.password) : existing.password_hash,
     is_active: patch.isActive === undefined ? existing.is_active : patch.isActive ? 1 : 0,
   };
-  db.prepare("UPDATE masters SET name=?, description=?, is_active=? WHERE id=?").run(
-    next.name,
-    next.description,
-    next.is_active,
-    id,
-  );
+  try {
+    db.prepare("UPDATE masters SET name=?, description=?, email=?, password_hash=?, is_active=? WHERE id=?").run(
+      next.name,
+      next.description,
+      next.email,
+      next.password_hash,
+      next.is_active,
+      id,
+    );
+  } catch (error) {
+    throwIfEmailTaken(error);
+  }
   return serialize(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
 }
 

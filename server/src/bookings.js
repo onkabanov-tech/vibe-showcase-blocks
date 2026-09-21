@@ -60,6 +60,14 @@ function generateTempCode() {
   return `tmp-${randomBytes(8).toString("hex")}`;
 }
 
+// Единая точка записи статуса — и клиентская отмена (cancelBooking), и
+// админская смена статуса (adminSetBookingStatus) проходят через неё,
+// чтобы сам эффект "поменять статус записи в БД" был ровно в одном
+// месте, а не продублирован в двух отдельных UPDATE.
+function writeBookingStatus(db, bookingId, status) {
+  db.prepare("UPDATE bookings SET status=?, updated_at=? WHERE id=?").run(status, nowIso(), bookingId);
+}
+
 // Срабатывает и на "лишнюю подстраховку" — частичный уникальный индекс
 // ux_bookings_master_active_start (docs/db-schema.md §7), и на настоящую
 // защиту — триггеры 0003_no_overlap_triggers.sql (RAISE(ABORT,
@@ -181,6 +189,26 @@ export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId
   return toClientView(loadBooking(getDb(), bookingId));
 }
 
+// Мастерский путь (POST /api/master/bookings) — тоже overrideOverlap
+// жёстко false: наложение поверх занятого времени осталось только
+// админской возможностью (docs/db-schema.md §9, пункт 17), мастер этот
+// параметр даже передать не может — routes/master.routes.js его не
+// читает. masterId сюда приходит из сессии мастера (routes/master.routes.js),
+// не из тела запроса, — мастер не может создать запись "от имени" другого
+// мастера, только на самого себя.
+export function masterCreateBooking({ masterId, clientId, serviceIds, startsAt, comment }) {
+  const bookingId = createBookingCore({
+    clientId,
+    masterId,
+    serviceIds,
+    startsAt,
+    holdId: null,
+    comment,
+    overrideOverlap: false,
+  });
+  return toAdminView(loadBooking(getDb(), bookingId));
+}
+
 // Админский путь (POST /api/admin/bookings) — единственное место, где
 // overrideOverlap вообще может стать true. Проверка роли — requireAdmin
 // в routes/admin.routes.js, до вызова этой функции.
@@ -266,7 +294,7 @@ export function cancelBooking({ bookingId, clientId }) {
   if (loaded.booking.status === "cancelled") {
     throw new ApiError(409, "already_cancelled", "Запись уже отменена");
   }
-  db.prepare("UPDATE bookings SET status='cancelled', updated_at=? WHERE id=?").run(nowIso(), bookingId);
+  writeBookingStatus(db, bookingId, "cancelled");
   return toClientView(loadBooking(db, bookingId));
 }
 
@@ -303,6 +331,6 @@ export function adminSetBookingStatus({ bookingId, status }) {
   if (loaded.booking.status === status) {
     throw new ApiError(409, "no_change", "Запись уже в этом статусе");
   }
-  db.prepare("UPDATE bookings SET status=?, updated_at=? WHERE id=?").run(status, nowIso(), bookingId);
+  writeBookingStatus(db, bookingId, status);
   return toAdminView(loadBooking(db, bookingId));
 }

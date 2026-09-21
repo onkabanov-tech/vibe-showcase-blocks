@@ -37,6 +37,16 @@ export function requirePassword(body, field = "password") {
   return value;
 }
 
+export function optionalEmail(body, field = "email") {
+  if (body[field] === undefined || body[field] === null) return undefined;
+  return requireEmail(body, field);
+}
+
+export function optionalPassword(body, field = "password") {
+  if (body[field] === undefined || body[field] === null) return undefined;
+  return requirePassword(body, field);
+}
+
 export function requireInt(body, field, { min, max } = {}) {
   const value = body[field];
   if (!Number.isInteger(value)) invalid(field, `Поле "${field}" должно быть целым числом`);

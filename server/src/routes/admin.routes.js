@@ -7,6 +7,8 @@ import {
   requireIntArray,
   requireIsoUtcDateTime,
   optionalBoolean,
+  optionalEmail,
+  optionalPassword,
   requireIntParam,
 } from "../validation.js";
 import { requireAdmin } from "../authz.js";
@@ -113,6 +115,11 @@ export function registerAdminRoutes(router) {
       name: requireString(body, "name", { maxLength: 200 }),
       description: optionalString(body, "description", { maxLength: 2000 }),
       isActive: optionalBoolean(body, "isActive", true),
+      // email/password — необязательны: заводят вход мастеру, если он
+      // им нужен. Без них мастер остаётся как раньше — просто запись в
+      // каталоге, на которую можно ссылаться, но которая сама войти не может.
+      email: optionalEmail(body, "email"),
+      password: optionalPassword(body, "password"),
     };
     sendJson(res, 201, { master: createMaster(input) });
   });
@@ -126,6 +133,8 @@ export function registerAdminRoutes(router) {
       description:
         body.description === undefined ? undefined : optionalString(body, "description", { maxLength: 2000 }),
       isActive: body.isActive === undefined ? undefined : optionalBoolean(body, "isActive", undefined),
+      email: optionalEmail(body, "email"),
+      password: optionalPassword(body, "password"),
     };
     sendJson(res, 200, { master: updateMaster(id, patch) });
   });

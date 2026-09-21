@@ -89,7 +89,9 @@
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
 | `name` | TEXT | да | — | Имя мастера |
 | `description` | TEXT | нет | — | Короткое описание/специализация |
-| `is_active` | INTEGER (0/1) | да, default 1 | — | Мягкое скрытие вместо удаления — на мастера могут ссылаться записи |
+| `email` | TEXT | нет | UNIQUE | Логин для входа мастера. `NULL`, если мастеру вход не заводили — тогда это просто запись в каталоге, как до миграции `0005` |
+| `password_hash` | TEXT | нет | — | Хеш пароля (см. `src/password.js`, scrypt); заполняется только вместе с `email`. Мастера не регистрируются сами — учётку заводит и меняет администратор через `POST`/`PATCH /api/admin/masters` |
+| `is_active` | INTEGER (0/1) | да, default 1 | — | Мягкое скрытие вместо удаления — на мастера могут ссылаться записи; заодно и выключатель для входа (`requireMaster` отклоняет неактивного мастера — `403`) |
 | `created_at` | TEXT | да | — | ISO-8601 |
 
 ### 4.3 `clients` — Клиенты
@@ -110,21 +112,32 @@
 после `npm run db:fresh` пустых значений нет. Подробности и почему это не
 переросло в отдельную таблицу — `docs/db-notes.md`.
 
-### 4.4 `sessions` — Сессии (клиенты и администраторы)
+### 4.4 `sessions` — Сессии (клиенты, администраторы, мастера)
 
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
 | `token` | TEXT | да | UNIQUE | Значение из заголовка `Authorization: Bearer <token>` |
-| `actor_type` | TEXT | да | CHECK IN (`client`,`admin`) | Кто владелец сессии |
-| `actor_id` | INTEGER | да | — (см. ниже) | id из `clients` или `admin_users`, в зависимости от `actor_type` |
+| `actor_type` | TEXT | да | CHECK IN (`client`,`admin`,`master`) | Кто владелец сессии |
+| `actor_id` | INTEGER | да | — (см. ниже) | id из `clients`, `admin_users` или `masters`, в зависимости от `actor_type` |
 | `created_at` | TEXT | да | — | ISO-8601 |
 | `expires_at` | TEXT | да | — | ISO-8601; после этого момента сессия недействительна |
 
 У `actor_id` намеренно нет `FOREIGN KEY` — он указывает то в `clients`, то
-в `admin_users` в зависимости от `actor_type` (полиморфная ссылка), а
-SQLite не умеет условные внешние ключи. Целостность здесь поддерживает
-код (`src/sessions.js`, `src/authz.js`), а не сама схема.
+в `admin_users`, то в `masters` в зависимости от `actor_type` (полиморфная
+ссылка), а SQLite не умеет условные внешние ключи. Целостность здесь
+поддерживает код (`src/sessions.js`, `src/authz.js`), а не сама схема.
+
+`master` в списке значений `actor_type` появился миграцией
+`0005_master_login.sql` — CHECK-ограничение с фиксированным списком
+значений SQLite не даёт изменить через `ALTER TABLE`, только пересоздать
+таблицу (переименовать, создать заново с новым CHECK, скопировать
+данные, удалить старую — стандартная процедура из документации SQLite
+для того, что `ALTER TABLE` не поддерживает напрямую). `AUTOINCREMENT`
+при этом не сбрасывается: явная вставка существующих `id` в таблицу с
+`INTEGER PRIMARY KEY AUTOINCREMENT` обновляет `sqlite_sequence` так же,
+как обычная вставка — проверено отдельно перед тем, как полагаться на
+это в миграции.
 
 ### 4.5 `bookings` — Записи
 
@@ -432,6 +445,7 @@ SQLite не умеет условные внешние ключи. Целост�
 | `UNIQUE(work_schedule.master_id, weekday)` | На каждый день недели у каждого мастера — ровно одно правило графика | Два конфликтующих правила на один день одного мастера сделают расчёт свободных слотов недетерминированным |
 | `UNIQUE(admin_users.username)` | Логин однозначно определяет одну учётную запись | При входе или сбросе пароля было бы неясно, какую из нескольких учёток с одинаковым логином использовать |
 | `UNIQUE(clients.email)` | Email клиента — уникальный логин | Регистрация второго аккаунта с тем же email сделала бы вход неоднозначным — непонятно, в какой аккаунт пускать |
+| `UNIQUE(masters.email)` | Email мастера (если вход ему включён) — тоже уникальный логин | Тот же риск, что и с `clients.email`: два мастера с одним email — неясно, в чью учётку пускать при входе |
 | `UNIQUE(sessions.token)` | Токен сессии однозначно определяет, кто сделал запрос | Коллизия токенов пустила бы одного пользователя под чужой сессией |
 | Индекс `sessions(actor_type, actor_id)` | Быстро найти/отозвать все сессии конкретного клиента или админа | Логаут «везде» или проверка активных сессий сканировали бы всю таблицу |
 | Индекс `sessions(expires_at)` | Ускоряет периодическую подчистку истёкших сессий | Фоновая очистка (`server/src/index.js`) сканировала бы все сессии, а не только просроченные |
@@ -468,12 +482,15 @@ CREATE TABLE services (
 CREATE UNIQUE INDEX ux_services_name ON services(name);
 
 CREATE TABLE masters (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL,
-  description TEXT,
-  is_active   INTEGER NOT NULL DEFAULT 1,
-  created_at  TEXT NOT NULL
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  name           TEXT NOT NULL,
+  description    TEXT,
+  email          TEXT,
+  password_hash  TEXT,
+  is_active      INTEGER NOT NULL DEFAULT 1,
+  created_at     TEXT NOT NULL
 );
+CREATE UNIQUE INDEX ux_masters_email ON masters(email);
 
 CREATE TABLE clients (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -489,7 +506,7 @@ CREATE UNIQUE INDEX ux_clients_email ON clients(email);
 CREATE TABLE sessions (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   token      TEXT NOT NULL,
-  actor_type TEXT NOT NULL CHECK (actor_type IN ('client', 'admin')),
+  actor_type TEXT NOT NULL CHECK (actor_type IN ('client', 'admin', 'master')),
   actor_id   INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   expires_at TEXT NOT NULL
@@ -778,3 +795,31 @@ END;
     там нечего, а сброс без причины дал бы неожиданный `409` при простом
     подтверждении/отмене записи, если за время её жизни кто-то успел
     занять то же время другой записью.
+
+19. **Создание записи — одна функция (`createBookingCore` в
+    `server/src/bookings.js`) на все три роли**, а не три похожих куска
+    кода со своим `INSERT INTO bookings`. Клиент (`createBooking`),
+    мастер (`masterCreateBooking`) и администратор (`adminCreateBooking`)
+    — тонкие обёртки, которые различаются только тем, откуда берут
+    `clientId`/`masterId` (из сессии или из тела запроса) и какие
+    необязательные возможности разрешают (`holdId` — только клиенту,
+    `overrideOverlap` — только админу), но сам INSERT, транзакция
+    `BEGIN IMMEDIATE`, проверка слота и перехват ошибки триггера — общий
+    код, который не может незаметно разойтись между ролями. Второго пути
+    вставки записи в БД в коде приложения нет (`seed.js` — отдельный
+    dev-скрипт для фикстур, не часть работающего API). Перенос
+    (`rescheduleBooking`) и оба варианта отмены/смены статуса
+    (`cancelBooking` для клиента, `adminSetBookingStatus` для админа)
+    по той же причине сведены к одному внутреннему `writeBookingStatus()`
+    для самой записи UPDATE — раньше это были два одинаковых по смыслу,
+    но текстуально отдельных `UPDATE bookings SET status=...`.
+
+20. **У `masters` нет отдельной таблицы-справочника ролей/учёток — `email`
+    и `password_hash` добавлены прямо в `masters`**, как раньше в
+    `clients`. Альтернатива — общая таблица `accounts`
+    (`actor_type`, `actor_id`, `email`, `password_hash`), из которой
+    `clients`/`masters`/`admin_users` ссылались бы на неё. Не стал:
+    аутентификационных полей всего два, они уже устроены одинаково в
+    `clients` и `admin_users`, а третья похожая таблица ради общности
+    добавила бы join там, где раньше было прямое чтение строки, не решая
+    при этом ничего нового.

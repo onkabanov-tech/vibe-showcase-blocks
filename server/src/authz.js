@@ -40,4 +40,15 @@ export function requireAdmin(req) {
   return admin;
 }
 
+// Возвращает текущего мастера (без password_hash) или бросает 401/403.
+export function requireMaster(req) {
+  const session = requireSession(req, "master");
+  const master = getDb()
+    .prepare("SELECT id, name, email, is_active FROM masters WHERE id = ?")
+    .get(session.actor_id);
+  if (!master) throw new ApiError(401, "unauthorized", "Учётная запись мастера не найдена");
+  if (!master.is_active) throw new ApiError(403, "forbidden", "Учётная запись мастера отключена");
+  return master;
+}
+
 export { bearerToken };

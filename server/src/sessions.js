@@ -1,15 +1,18 @@
-// Токен-сессии для клиентов и администраторов в одной таблице (sessions).
-// Логаут — это реальное удаление строки, а не просто "забыть токен на
-// клиенте", поэтому не JWT: у JWT нет отзыва без чёрного списка.
+// Токен-сессии для клиентов, администраторов и мастеров в одной таблице
+// (sessions). Логаут — это реальное удаление строки, а не просто "забыть
+// токен на клиенте", поэтому не JWT: у JWT нет отзыва без чёрного списка.
 import { randomBytes } from "node:crypto";
 import { getDb } from "./db.js";
 import { nowIso, toIso } from "./time.js";
 
 const CLIENT_SESSION_TTL_HOURS = Number(process.env.CLIENT_SESSION_TTL_HOURS ?? 720); // 30 дней
 const ADMIN_SESSION_TTL_HOURS = Number(process.env.ADMIN_SESSION_TTL_HOURS ?? 12);
+const MASTER_SESSION_TTL_HOURS = Number(process.env.MASTER_SESSION_TTL_HOURS ?? 24);
 
 function ttlHoursFor(actorType) {
-  return actorType === "admin" ? ADMIN_SESSION_TTL_HOURS : CLIENT_SESSION_TTL_HOURS;
+  if (actorType === "admin") return ADMIN_SESSION_TTL_HOURS;
+  if (actorType === "master") return MASTER_SESSION_TTL_HOURS;
+  return CLIENT_SESSION_TTL_HOURS;
 }
 
 export function createSession(actorType, actorId) {
