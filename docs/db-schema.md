@@ -117,7 +117,7 @@
 | Поле | Тип | Обязательное | Ключ | Описание |
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
-| `token` | TEXT | да | UNIQUE | Значение из заголовка `Authorization: Bearer <token>` |
+| `token_hash` | TEXT | да | UNIQUE | SHA-256 от токена из заголовка `Authorization: Bearer <token>` — сам токен в базе не хранится (см. `src/sessions.js`) |
 | `actor_type` | TEXT | да | CHECK IN (`client`,`admin`,`master`) | Кто владелец сессии |
 | `actor_id` | INTEGER | да | — (см. ниже) | id из `clients`, `admin_users` или `masters`, в зависимости от `actor_type` |
 | `created_at` | TEXT | да | — | ISO-8601 |
@@ -138,6 +138,15 @@
 `INTEGER PRIMARY KEY AUTOINCREMENT` обновляет `sqlite_sequence` так же,
 как обычная вставка — проверено отдельно перед тем, как полагаться на
 это в миграции.
+
+Колонка `token` переименована в `token_hash` миграцией
+`0006_hash_session_tokens.sql`: раньше в ней лежал сам токен в открытом
+виде. Без соли — это не пароль, а готовая случайная строка
+(`randomBytes(32)` в `src/sessions.js`), угадать её перебором и так
+нельзя, соль защищала бы от рода атак, которым здесь неоткуда взяться.
+Смысл хеширования тут другой: утечка файла БД не должна сразу давать
+рабочие токены для входа под чужими сессиями — из хеша исходный токен
+не восстановить.
 
 ### 4.5 `bookings` — Записи
 
@@ -446,7 +455,7 @@
 | `UNIQUE(admin_users.username)` | Логин однозначно определяет одну учётную запись | При входе или сбросе пароля было бы неясно, какую из нескольких учёток с одинаковым логином использовать |
 | `UNIQUE(clients.email)` | Email клиента — уникальный логин | Регистрация второго аккаунта с тем же email сделала бы вход неоднозначным — непонятно, в какой аккаунт пускать |
 | `UNIQUE(masters.email)` | Email мастера (если вход ему включён) — тоже уникальный логин | Тот же риск, что и с `clients.email`: два мастера с одним email — неясно, в чью учётку пускать при входе |
-| `UNIQUE(sessions.token)` | Токен сессии однозначно определяет, кто сделал запрос | Коллизия токенов пустила бы одного пользователя под чужой сессией |
+| `UNIQUE(sessions.token_hash)` | Хеш токена сессии однозначно определяет, кто сделал запрос | Коллизия хешей пустила бы одного пользователя под чужой сессией |
 | Индекс `sessions(actor_type, actor_id)` | Быстро найти/отозвать все сессии конкретного клиента или админа | Логаут «везде» или проверка активных сессий сканировали бы всю таблицу |
 | Индекс `sessions(expires_at)` | Ускоряет периодическую подчистку истёкших сессий | Фоновая очистка (`server/src/index.js`) сканировала бы все сессии, а не только просроченные |
 | Индекс `schedule_blocks(master_id, starts_at, ends_at)` | Ускоряет поиск блокировок конкретного мастера, пересекающих нужный день | Расчёт свободных слотов сканировал бы блокировки всех мастеров за всё время |
@@ -505,13 +514,13 @@ CREATE UNIQUE INDEX ux_clients_email ON clients(email);
 
 CREATE TABLE sessions (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  token      TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
   actor_type TEXT NOT NULL CHECK (actor_type IN ('client', 'admin', 'master')),
   actor_id   INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   expires_at TEXT NOT NULL
 );
-CREATE UNIQUE INDEX ux_sessions_token ON sessions(token);
+CREATE UNIQUE INDEX ux_sessions_token_hash ON sessions(token_hash);
 CREATE INDEX ix_sessions_actor ON sessions(actor_type, actor_id);
 CREATE INDEX ix_sessions_expires_at ON sessions(expires_at);
 
