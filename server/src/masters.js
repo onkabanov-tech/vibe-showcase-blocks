@@ -3,14 +3,22 @@ import { nowIso } from "./time.js";
 import { hashPassword } from "./password.js";
 import { ApiError } from "./http/respond.js";
 
-function serialize(row) {
+// Публичный вид (каталог мастеров на лендинге/в записи) — без email.
+// email — это логин мастера для входа, а не публичная информация о нём;
+// раньше он по ошибке уходил в общий serialize() и был виден в открытом
+// GET /api/masters кому угодно без авторизации.
+function serializePublic(row) {
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    email: row.email ?? null,
     isActive: !!row.is_active,
   };
+}
+
+// Админский вид — плюс email, админу он нужен, чтобы знать/менять логин мастера.
+function serializeAdmin(row) {
+  return { ...serializePublic(row), email: row.email ?? null };
 }
 
 function throwIfEmailTaken(error) {
@@ -20,16 +28,22 @@ function throwIfEmailTaken(error) {
   throw error;
 }
 
-export function listMasters({ includeInactive = false } = {}) {
+// Публичный каталог — только активные мастера, без email.
+export function listMasters() {
   const db = getDb();
   const rows = db
-    .prepare(
-      `SELECT id, name, description, email, is_active FROM masters
-       ${includeInactive ? "" : "WHERE is_active = 1"}
-       ORDER BY id`,
-    )
+    .prepare("SELECT id, name, description, is_active FROM masters WHERE is_active = 1 ORDER BY id")
     .all();
-  return rows.map(serialize);
+  return rows.map(serializePublic);
+}
+
+// Для админки — все мастера (включая неактивных) и с email.
+export function listMastersForAdmin() {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT id, name, description, email, is_active FROM masters ORDER BY id")
+    .all();
+  return rows.map(serializeAdmin);
 }
 
 export function getMasterOrThrow(id, { requireActive = false } = {}) {
@@ -57,7 +71,7 @@ export function createMaster(input) {
       )
       .run(input.name, input.description, input.email ?? null, passwordHash, input.isActive ? 1 : 0, now)
       .lastInsertRowid;
-    return serialize(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
+    return serializeAdmin(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
   } catch (error) {
     throwIfEmailTaken(error);
   }
@@ -87,7 +101,7 @@ export function updateMaster(id, patch) {
   } catch (error) {
     throwIfEmailTaken(error);
   }
-  return serialize(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
+  return serializeAdmin(db.prepare("SELECT * FROM masters WHERE id = ?").get(id));
 }
 
 export function softDeleteMaster(id) {

@@ -1,0 +1,24 @@
+# Автоопределение текстовых файлов + единый перевод строки (LF) в
+# репозитории, независимо от ОС того, кто коммитит — деплой на Beget
+# и общий CI ожидают LF, а на Windows git иначе подставил бы CRLF.
+* text=auto eol=lf
+
+# Явно бинарные — чтобы git не пытался диффить/нормализовать построчно.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Генерируется автоматически — не нужно в диффах PR и в языковой
+# статистике репозитория.
+bun.lock -diff linguist-generated
+src/routeTree.gen.ts -diff linguist-generated

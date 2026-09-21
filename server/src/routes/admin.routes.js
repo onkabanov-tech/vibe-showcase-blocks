@@ -15,7 +15,7 @@ import { requireAdmin } from "../authz.js";
 import { listAllBookings, adminSetBookingStatus, adminCreateBooking } from "../bookings.js";
 import { getClientOrThrow } from "../clients.js";
 import { listServices, createService, updateService, softDeleteService } from "../services.js";
-import { listMasters, createMaster, updateMaster, softDeleteMaster } from "../masters.js";
+import { listMastersForAdmin, createMaster, updateMaster, softDeleteMaster } from "../masters.js";
 
 export function registerAdminRoutes(router) {
   // --- Записи ---------------------------------------------------------
@@ -105,7 +105,7 @@ export function registerAdminRoutes(router) {
   // --- Мастера ------------------------------------------------------------
   router.get("/api/admin/masters", (req, res) => {
     requireAdmin(req);
-    sendJson(res, 200, { masters: listMasters({ includeInactive: true }) });
+    sendJson(res, 200, { masters: listMastersForAdmin() });
   });
 
   router.post("/api/admin/masters", async (req, res) => {
