@@ -4,16 +4,41 @@ import {
   requireString,
   optionalString,
   requireInt,
+  requireIntArray,
+  requireIsoUtcDateTime,
   optionalBoolean,
   requireIntParam,
 } from "../validation.js";
 import { requireAdmin } from "../authz.js";
-import { listAllBookings, adminSetBookingStatus } from "../bookings.js";
+import { listAllBookings, adminSetBookingStatus, adminCreateBooking } from "../bookings.js";
+import { getClientOrThrow } from "../clients.js";
 import { listServices, createService, updateService, softDeleteService } from "../services.js";
 import { listMasters, createMaster, updateMaster, softDeleteMaster } from "../masters.js";
 
 export function registerAdminRoutes(router) {
   // --- Записи ---------------------------------------------------------
+
+  // Единственное место во всём API, где читается overrideOverlap — сразу
+  // за проверкой роли. Клиентский POST /api/bookings (routes/bookings.routes.js)
+  // это поле из тела запроса не читает вовсе, так что передать его клиенту
+  // нечем: пришли бы им хоть overrideOverlap:true, хоть что угодно ещё —
+  // это тело обрабатывает другой обработчик с другим набором полей, и
+  // никакого пути от него к adminCreateBooking() нет.
+  router.post("/api/admin/bookings", async (req, res) => {
+    requireAdmin(req); // 401/403 — см. server/src/authz.js
+    const body = await readJsonBody(req);
+    const clientId = requireInt(body, "clientId", { min: 1 });
+    getClientOrThrow(clientId);
+    const masterId = requireInt(body, "masterId", { min: 1 });
+    const serviceIds = requireIntArray(body, "serviceIds");
+    const startsAt = requireIsoUtcDateTime(body, "startsAt");
+    const comment = optionalString(body, "comment", { maxLength: 1000 });
+    const overrideOverlap = optionalBoolean(body, "overrideOverlap", false);
+
+    const booking = adminCreateBooking({ clientId, masterId, serviceIds, startsAt, comment, overrideOverlap });
+    sendJson(res, 201, { booking });
+  });
+
   router.get("/api/admin/bookings", (req, res, params, query) => {
     requireAdmin(req);
     const status = query.get("status") || undefined;

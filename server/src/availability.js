@@ -112,8 +112,20 @@ export function findNearestFreeSlots({ masterId, totalDurationMinutes, fromIso, 
 // Используется при создании/переносе удержания и записи: убеждается, что
 // именно этот интервал (а не сетка кратных слотов) свободен и укладывается
 // в рабочие часы. ignoreHoldId/ignoreBookingId — чтобы не конфликтовать
-// самим с собой при переносе/подтверждении удержания.
-export function assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId, ignoreBookingId }) {
+// самим с собой при переносе/подтверждении удержания. allowBookingOverlap
+// — только для осознанного наложения администратором (см.
+// server/src/bookings.js, createBooking с overrideOverlap=true): пропускает
+// именно проверку "уже есть активная запись на это время", но не рабочие
+// часы, не блокировки мастера и не чужие удержания слота — это разные,
+// не связанные с двойной записью ограничения.
+export function assertSlotIsFree({
+  masterId,
+  startsAt,
+  endsAt,
+  ignoreHoldId,
+  ignoreBookingId,
+  allowBookingOverlap = false,
+}) {
   const db = getDb();
   const startParts = utcIsoToSalonLocalParts(startsAt);
   const endParts = utcIsoToSalonLocalParts(endsAt);
@@ -134,15 +146,17 @@ export function assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId, ign
     throw new ApiError(409, "outside_working_hours", "Выбранное время вне рабочих часов мастера");
   }
 
-  const bookingConflict = db
-    .prepare(
-      `SELECT 1 FROM bookings
-       WHERE master_id = ? AND status <> 'cancelled' AND starts_at < ? AND ends_at > ?
-       ${ignoreBookingId ? "AND id <> ?" : ""}
-       LIMIT 1`,
-    )
-    .get(...[masterId, endsAt, startsAt, ...(ignoreBookingId ? [ignoreBookingId] : [])]);
-  if (bookingConflict) throw slotTakenError({ masterId, startsAt, endsAt });
+  if (!allowBookingOverlap) {
+    const bookingConflict = db
+      .prepare(
+        `SELECT 1 FROM bookings
+         WHERE master_id = ? AND status <> 'cancelled' AND starts_at < ? AND ends_at > ?
+         ${ignoreBookingId ? "AND id <> ?" : ""}
+         LIMIT 1`,
+      )
+      .get(...[masterId, endsAt, startsAt, ...(ignoreBookingId ? [ignoreBookingId] : [])]);
+    if (bookingConflict) throw slotTakenError({ masterId, startsAt, endsAt });
+  }
 
   const blockConflict = db
     .prepare(

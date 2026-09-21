@@ -52,6 +52,7 @@ function toAdminView({ booking, services, master, client }) {
   return {
     ...toClientView({ booking, services, master }),
     client: client ? { id: client.id, name: client.name, contact: client.contact } : null,
+    overrideOverlap: !!booking.override_overlap,
   };
 }
 
@@ -72,7 +73,12 @@ function isBookingOverlapError(error) {
   );
 }
 
-export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId, comment }) {
+// Общее ядро для обоих путей создания записи — клиентского и админского.
+// overrideOverlap сюда приходит только из adminCreateBooking (см. ниже);
+// createBooking (клиентский путь) всегда передаёт false явно, каким бы
+// ни было тело запроса клиента — так что даже гипотетическая ошибка
+// в маршруте не сможет случайно протащить этот флаг для клиента.
+function createBookingCore({ clientId, masterId, serviceIds, startsAt, holdId, comment, overrideOverlap }) {
   getMasterOrThrow(masterId, { requireActive: true });
   const services = getServicesByIds(serviceIds);
   const totalDurationMinutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
@@ -119,14 +125,27 @@ export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId
       }
     }
 
-    assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId: hold?.id });
+    // allowBookingOverlap пропускает только проверку "уже занято другой
+    // записью" — рабочие часы, блокировки мастера и чужие удержания
+    // по-прежнему проверяются даже для admin-override.
+    assertSlotIsFree({ masterId, startsAt, endsAt, ignoreHoldId: hold?.id, allowBookingOverlap: overrideOverlap });
 
     const bookingId = db
       .prepare(
-        `INSERT INTO bookings (code, client_id, master_id, starts_at, ends_at, status, comment, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+        `INSERT INTO bookings (code, client_id, master_id, starts_at, ends_at, status, comment, override_overlap, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
       )
-      .run(generateTempCode(), clientId, masterId, startsAt, endsAt, comment ?? null, now, now).lastInsertRowid;
+      .run(
+        generateTempCode(),
+        clientId,
+        masterId,
+        startsAt,
+        endsAt,
+        comment ?? null,
+        overrideOverlap ? 1 : 0,
+        now,
+        now,
+      ).lastInsertRowid;
 
     db.prepare("UPDATE bookings SET code = ? WHERE id = ?").run(`BK-${1000 + bookingId}`, bookingId);
 
@@ -138,12 +157,44 @@ export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId
     if (hold) db.prepare("DELETE FROM slot_holds WHERE id = ?").run(hold.id);
 
     db.exec("COMMIT");
-    return toClientView(loadBooking(db, bookingId));
+    return bookingId;
   } catch (error) {
     db.exec("ROLLBACK");
     if (isBookingOverlapError(error)) throw slotTakenError({ masterId, startsAt, endsAt });
     throw error;
   }
+}
+
+// Клиентский путь (POST /api/bookings) — overrideOverlap жёстко false,
+// параметр из тела запроса клиента сюда даже не пробрасывается ни на
+// уровне маршрута (routes/bookings.routes.js его не читает), ни здесь.
+export function createBooking({ clientId, masterId, serviceIds, startsAt, holdId, comment }) {
+  const bookingId = createBookingCore({
+    clientId,
+    masterId,
+    serviceIds,
+    startsAt,
+    holdId,
+    comment,
+    overrideOverlap: false,
+  });
+  return toClientView(loadBooking(getDb(), bookingId));
+}
+
+// Админский путь (POST /api/admin/bookings) — единственное место, где
+// overrideOverlap вообще может стать true. Проверка роли — requireAdmin
+// в routes/admin.routes.js, до вызова этой функции.
+export function adminCreateBooking({ clientId, masterId, serviceIds, startsAt, comment, overrideOverlap }) {
+  const bookingId = createBookingCore({
+    clientId,
+    masterId,
+    serviceIds,
+    startsAt,
+    holdId: null,
+    comment,
+    overrideOverlap: !!overrideOverlap,
+  });
+  return toAdminView(loadBooking(getDb(), bookingId));
 }
 
 export function listClientBookings(clientId) {
@@ -180,11 +231,19 @@ export function rescheduleBooking({ bookingId, clientId, startsAt }) {
   // Тот же принцип BEGIN IMMEDIATE, что и в createBooking: перенос — это
   // тоже "проверить, что время свободно" + "записать", и должен быть
   // одной неделимой операцией, а не двумя отдельными шагами с окном
-  // гонки между ними.
+  // гонки между ними. Перенос всегда идёт по обычной проверке
+  // (allowBookingOverlap не передаём) и сбрасывает override_overlap в 0,
+  // даже если запись была создана администратором поверх занятого
+  // времени: старое наложение было осознанным решением для СТАРОГО
+  // времени, а не бессрочным пропуском проверки для этой записи —
+  // переезжая на новое время, она проверяется как обычная (требование
+  // "участвовать в проверке пересечений как обычная").
   db.exec("BEGIN IMMEDIATE");
   try {
     assertSlotIsFree({ masterId, startsAt, endsAt, ignoreBookingId: bookingId });
-    db.prepare("UPDATE bookings SET starts_at=?, ends_at=?, status='pending', updated_at=? WHERE id=?").run(
+    db.prepare(
+      "UPDATE bookings SET starts_at=?, ends_at=?, status='pending', override_overlap=0, updated_at=? WHERE id=?",
+    ).run(
       startsAt,
       endsAt,
       now,
