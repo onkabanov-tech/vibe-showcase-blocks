@@ -230,7 +230,7 @@
 |---|---|---|---|---|
 | `id` | INTEGER | да | PK, AUTOINCREMENT | Суррогатный ключ |
 | `username` | TEXT | да | UNIQUE | Логин (email или имя пользователя) |
-| `password_hash` | TEXT | да | — | Хеш пароля (bcrypt/argon2/…). Самого пароля в БД нет — требование 5 |
+| `password_hash` | TEXT | да | — | Хеш пароля (см. `src/password.js`, scrypt). Самого пароля в БД нет — требование 5 |
 | `created_at` | TEXT | да | — | ISO-8601 |
 | `last_login_at` | TEXT | нет | — | ISO-8601, для аудита входов |
 
