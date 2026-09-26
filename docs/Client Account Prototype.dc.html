@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  ::placeholder { color: #6b7a96; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0a1628;color:#ffffff;font-family:'Inter',sans-serif;line-height:1.6;">
+
+<sc-if value="{{ showAccountNav }}" hint-placeholder-val="{{ true }}">
+<header style="display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:16px;">
+  <div style="display:flex;align-items:center;gap:40px;flex-wrap:wrap;">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#d4af37;">Кабанов Олег</div>
+    <nav style="display:flex;gap:28px;">
+      <div onClick="{{ goToCabinet }}" style="font-size:14px;font-weight:600;cursor:pointer;color:{{ navCabinetColor }};border-bottom:{{ navCabinetBorder }};padding-bottom:4px;">Мои записи</div>
+      <div onClick="{{ goToProfile }}" style="font-size:14px;font-weight:600;cursor:pointer;color:{{ navProfileColor }};border-bottom:{{ navProfileBorder }};padding-bottom:4px;">Профиль</div>
+      <div onClick="{{ goToNotifications }}" style="font-size:14px;font-weight:600;cursor:pointer;color:{{ navNotifColor }};border-bottom:{{ navNotifBorder }};padding-bottom:4px;display:flex;align-items:center;gap:6px;">
+        Уведомления
+        <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ true }}">
+          <span style="min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#f4d03f;color:#0a1628;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">{{ unreadCount }}</span>
+        </sc-if>
+      </div>
+    </nav>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div onClick="{{ goToServiceDemo }}" style="font-size:13px;color:#6b7a96;cursor:pointer;">Служебные страницы</div>
+    <div onClick="{{ goToLanding }}" style="font-size:13px;color:#a0aec0;cursor:pointer;">Выйти</div>
+  </div>
+</header>
+</sc-if>
+
+<sc-if value="{{ isCabinet }}" hint-placeholder-val="{{ true }}">
+<div>
+  <section style="padding:40px 40px 80px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(26px,3vw,36px);font-weight:600;margin:0;">Мои записи</h1>
+      <div onClick="{{ goToLanding }}" style="padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Новая запись</div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:24px;">
+      <sc-for list="{{ cabinetTabs }}" as="tab" hint-placeholder-count="3">
+        <div onClick="{{ tab.onSelect }}" style="padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;background:{{ tab.bg }};color:{{ tab.color }};border:{{ tab.borderStyle }};">{{ tab.label }}</div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ cabinetIsEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:60px 20px;text-align:center;border:1px dashed rgba(255,255,255,0.12);border-radius:16px;">
+        <div style="font-size:15px;color:#a0aec0;margin-bottom:16px;">В этой категории пока нет записей</div>
+        <div onClick="{{ goToLanding }}" style="display:inline-block;padding:12px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:transparent;color:#d4af37;border:1px solid #d4af37;">Записаться на консультацию</div>
+      </div>
+    </sc-if>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <sc-for list="{{ visibleBookings }}" as="b" hint-placeholder-count="3">
+        <div style="padding:20px 22px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:10px;">
+            <div>
+              <div style="font-weight:600;font-size:15px;margin-bottom:4px;">{{ b.serviceName }}</div>
+              <div style="font-size:13px;color:#a0aec0;">{{ b.dateLabel }} · {{ b.time }} · {{ b.code }}</div>
+            </div>
+            <span style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ b.statusBg }};color:{{ b.statusColor }};">{{ b.statusLabel }}</span>
+          </div>
+
+          <sc-if value="{{ b.canManage }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:8px;">
+              <div onClick="{{ b.onToggleReschedule }}" style="padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(212,175,55,0.1);color:#d4af37;border:1px solid rgba(212,175,55,0.3);">{{ b.rescheduleLabel }}</div>
+              <div onClick="{{ b.onCancel }}" style="padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.3);">Отменить</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ b.isRescheduling }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:12px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Новая дата</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                <sc-for list="{{ rescheduleDates }}" as="d" hint-placeholder-count="7">
+                  <div onClick="{{ d.onSelect }}" style="min-width:56px;padding:10px 8px;border-radius:8px;text-align:center;cursor:pointer;background:{{ d.bg }};border:{{ d.borderStyle }};">
+                    <div style="font-size:10px;color:#a0aec0;text-transform:uppercase;">{{ d.weekdayLabel }}</div>
+                    <div style="font-size:14px;font-weight:600;">{{ d.dayLabel }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:12px;font-weight:600;color:#d4af37;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Новое время</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+                <sc-for list="{{ rescheduleTimes }}" as="t" hint-placeholder-count="6">
+                  <div onClick="{{ t.onSelect }}" style="padding:10px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;background:{{ t.bg }};border:{{ t.borderStyle }};">{{ t.label }}</div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <div onClick="{{ b.onConfirmReschedule }}" style="padding:10px 20px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Сохранить перенос</div>
+                <div onClick="{{ b.onToggleReschedule }}" style="padding:10px 20px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#a0aec0;border:1px solid rgba(255,255,255,0.15);">Отмена</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+<div>
+  <section style="padding:40px 40px 80px;max-width:560px;margin:0 auto;">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(26px,3vw,36px);font-weight:600;margin:0 0 28px;">Профиль</h1>
+
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:18px;">
+
+      <div>
+        <div style="font-size:12px;color:#a0aec0;margin-bottom:6px;">Имя</div>
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ false }}">
+          <input type="text" value="{{ profileDraftName }}" onChange="{{ setProfileDraftName }}" style="width:100%;padding:12px 14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.4);color:#ffffff;font-size:15px;font-family:'Inter',sans-serif;" />
+        </sc-if>
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:15px;font-weight:600;">{{ profileName }}</div>
+        </sc-if>
+      </div>
+
+      <div>
+        <div style="font-size:12px;color:#a0aec0;margin-bottom:6px;">Email · используется для входа</div>
+        <div style="font-size:15px;font-weight:600;color:#6b7a96;">{{ profileEmail }}</div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;color:#a0aec0;margin-bottom:6px;">Телефон или email для связи</div>
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ false }}">
+          <input type="text" value="{{ profileDraftContact }}" onChange="{{ setProfileDraftContact }}" style="width:100%;padding:12px 14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.4);color:#ffffff;font-size:15px;font-family:'Inter',sans-serif;" />
+        </sc-if>
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:15px;font-weight:600;">{{ profileContact }}</div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ profileSaved }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:13px;color:#4ade80;">Изменения сохранены</div>
+      </sc-if>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ startEditProfile }}" style="padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:transparent;color:#d4af37;border:1px solid #d4af37;">Редактировать</div>
+        </sc-if>
+        <sc-if value="{{ isEditingProfile }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ saveProfile }}" style="padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Сохранить</div>
+          <div onClick="{{ cancelEditProfile }}" style="padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#a0aec0;border:1px solid rgba(255,255,255,0.15);">Отмена</div>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNotifications }}" hint-placeholder-val="{{ false }}">
+<div>
+  <section style="padding:40px 40px 80px;max-width:640px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(26px,3vw,36px);font-weight:600;margin:0;">Уведомления</h1>
+      <div onClick="{{ markAllRead }}" style="font-size:13px;color:#d4af37;cursor:pointer;">Отметить всё прочитанным</div>
+    </div>
+
+    <div onClick="{{ toggleNotificationsDemo }}" style="display:inline-block;margin-bottom:20px;font-size:12px;color:#6b7a96;cursor:pointer;text-decoration:underline;">{{ notificationsDemoToggleLabel }}</div>
+
+    <sc-if value="{{ notificationsIsEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:60px 20px;text-align:center;border:1px dashed rgba(255,255,255,0.12);border-radius:16px;">
+        <div style="font-size:15px;color:#a0aec0;">Пока нет уведомлений — здесь появятся напоминания о записях и изменения их статуса</div>
+      </div>
+    </sc-if>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <sc-for list="{{ visibleNotifications }}" as="n" hint-placeholder-count="4">
+        <div onClick="{{ n.onMarkRead }}" style="display:flex;gap:14px;padding:16px 18px;background:{{ n.bg }};border:1px solid rgba(255,255,255,0.08);border-radius:12px;cursor:pointer;">
+          <div style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:{{ n.dotColor }};"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:14px;margin-bottom:3px;">{{ n.title }}</div>
+            <div style="font-size:13px;color:#a0aec0;margin-bottom:6px;">{{ n.text }}</div>
+            <div style="font-size:11px;color:#6b7a96;">{{ n.timeLabel }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isService }}" hint-placeholder-val="{{ false }}">
+<div>
+  <header style="padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#d4af37;">Кабанов Олег</div>
+  </header>
+
+  <div style="max-width:900px;margin:0 auto;padding:20px 40px 0;display:flex;gap:8px;flex-wrap:wrap;">
+    <span style="font-size:12px;color:#6b7a96;align-self:center;margin-right:6px;">Предпросмотр состояния:</span>
+    <sc-for list="{{ serviceKindTabs }}" as="k" hint-placeholder-count="4">
+      <div onClick="{{ k.onSelect }}" style="padding:8px 16px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;background:{{ k.bg }};color:{{ k.color }};border:{{ k.borderStyle }};">{{ k.label }}</div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ isServiceLoading }}" hint-placeholder-val="{{ true }}">
+    <section style="padding:120px 40px;max-width:560px;margin:0 auto;text-align:center;">
+      <div style="width:44px;height:44px;margin:0 auto 24px;border-radius:50%;border:3px solid rgba(212,175,55,0.2);border-top-color:#d4af37;animation:spin 0.9s linear infinite;"></div>
+      <div style="font-size:15px;color:#a0aec0;">Загружаем ваши записи…</div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isServiceEmpty }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:120px 40px;max-width:560px;margin:0 auto;text-align:center;">
+      <div style="font-size:15px;color:#a0aec0;margin-bottom:20px;">Пока нет ни одной записи</div>
+      <div onClick="{{ goToLanding }}" style="display:inline-block;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Записаться на консультацию</div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isServiceNotFound }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:100px 40px;max-width:560px;margin:0 auto;text-align:center;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:700;color:#d4af37;line-height:1;margin-bottom:12px;">404</div>
+      <div style="font-size:16px;color:#a0aec0;margin-bottom:28px;">Такой страницы не существует — возможно, ссылка устарела</div>
+      <div onClick="{{ goToLanding }}" style="display:inline-block;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">На главную</div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isServiceError }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:100px 40px;max-width:560px;margin:0 auto;text-align:center;">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#f87171;font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">!</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;margin:0 0 10px;">Что-то пошло не так</div>
+      <div style="font-size:14px;color:#a0aec0;margin-bottom:28px;">Не удалось загрузить данные. Попробуйте обновить страницу.</div>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <div onClick="{{ retryService }}" style="padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;background:linear-gradient(135deg,#d4af37 0%,#f4d03f 100%);color:#0a1628;">Обновить</div>
+        <div onClick="{{ goToLanding }}" style="padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#d4af37;border:1px solid #d4af37;">На главную</div>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:900}}">
+const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const TIMES = ['10:00', '11:30', '13:00', '14:30', '16:00', '17:30'];
+
+const STATUS_META = {
+  pending: { label: 'Ожидает подтверждения', bg: 'rgba(212,175,55,0.15)', color: '#f4d03f' },
+  confirmed: { label: 'Подтверждено', bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+  cancelled: { label: 'Отменено', bg: 'rgba(248,113,113,0.15)', color: '#f87171' }
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'cabinet', // cabinet | profile | notifications | service
+    cabinetFilter: 'upcoming', // upcoming | past | cancelled
+    reschedulingId: null,
+    rescheduleDateIdx: 0,
+    rescheduleTime: null,
+    bookings: [
+      { id: 1, code: 'BK-1041', serviceName: 'Персональная консультация', dateLabel: '2 окт, Пт', time: '14:30', status: 'confirmed', kind: 'upcoming' },
+      { id: 2, code: 'BK-1039', serviceName: 'UX-аудит интерфейса', dateLabel: '6 окт, Вт', time: '11:30', status: 'pending', kind: 'upcoming' },
+      { id: 3, code: 'BK-1021', serviceName: 'Разбор прототипа', dateLabel: '18 сен, Чт', time: '16:00', status: 'confirmed', kind: 'past' },
+      { id: 4, code: 'BK-1015', serviceName: 'Аудит дизайн-системы', dateLabel: '9 сен, Ср', time: '10:00', status: 'cancelled', kind: 'cancelled' }
+    ],
+
+    profileName: 'Анна Волкова',
+    profileEmail: 'anna.volkova@example.com',
+    profileContact: '+7 999 123-45-67',
+    profileDraftName: '',
+    profileDraftContact: '',
+    isEditingProfile: false,
+    profileSaved: false,
+
+    notificationsDemoEmpty: false,
+    notifications: [
+      { id: 1, title: 'Запись подтверждена', text: 'Персональная консультация 2 окт, 14:30 — подтверждена мастером.', timeLabel: '2 часа назад', read: false },
+      { id: 2, title: 'Напоминание', text: 'Завтра в 11:30 — UX-аудит интерфейса. Не забудьте подготовить вопросы.', timeLabel: 'вчера', read: false },
+      { id: 3, title: 'Запись перенесена', text: 'Разбор прототипа перенесён с 15 сен на 18 сен по вашей просьбе.', timeLabel: '3 дня назад', read: true },
+      { id: 4, title: 'Запись отменена', text: 'Аудит дизайн-системы 9 сен отменён.', timeLabel: '2 недели назад', read: true }
+    ],
+
+    serviceKind: 'loading' // loading | empty | notfound | error
+  };
+
+  constructor(props) {
+    super(props);
+    const today = new Date();
+    this.dates = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      return { dayLabel: d.getDate() + ' ' + MONTHS[d.getMonth()], weekdayLabel: WEEKDAYS[d.getDay()] };
+    });
+  }
+
+  goToLanding = () => { window.location.href = './Booking Prototype.dc.html'; };
+  goToCabinet = () => this.setState({ screen: 'cabinet' });
+  goToProfile = () => this.setState({ screen: 'profile' });
+  goToNotifications = () => this.setState({ screen: 'notifications' });
+  goToServiceDemo = () => this.setState({ screen: 'service' });
+
+  setCabinetFilter = (filter) => this.setState({ cabinetFilter: filter, reschedulingId: null });
+
+  cancelBooking = (id) => {
+    this.setState(s => ({ bookings: s.bookings.map(b => b.id === id ? { ...b, status: 'cancelled', kind: 'cancelled' } : b) }));
+  };
+
+  toggleReschedule = (id) => {
+    this.setState(s => ({
+      reschedulingId: s.reschedulingId === id ? null : id,
+      rescheduleDateIdx: 0,
+      rescheduleTime: null
+    }));
+  };
+  selectRescheduleDate = (idx) => this.setState({ rescheduleDateIdx: idx });
+  selectRescheduleTime = (t) => this.setState({ rescheduleTime: t });
+  confirmReschedule = (id) => {
+    const { rescheduleDateIdx, rescheduleTime } = this.state;
+    if (rescheduleTime == null) return;
+    const d = this.dates[rescheduleDateIdx];
+    this.setState(s => ({
+      bookings: s.bookings.map(b => b.id === id
+        ? { ...b, dateLabel: d.dayLabel + ', ' + d.weekdayLabel, time: rescheduleTime }
+        : b),
+      reschedulingId: null
+    }));
+  };
+
+  startEditProfile = () => this.setState(s => ({ isEditingProfile: true, profileDraftName: s.profileName, profileDraftContact: s.profileContact, profileSaved: false }));
+  cancelEditProfile = () => this.setState({ isEditingProfile: false });
+  setProfileDraftName = (e) => this.setState({ profileDraftName: e.target.value });
+  setProfileDraftContact = (e) => this.setState({ profileDraftContact: e.target.value });
+  saveProfile = () => {
+    const { profileDraftName, profileDraftContact } = this.state;
+    this.setState({
+      profileName: profileDraftName.trim(),
+      profileContact: profileDraftContact.trim(),
+      isEditingProfile: false,
+      profileSaved: true
+    });
+  };
+
+  markRead = (id) => this.setState(s => ({ notifications: s.notifications.map(n => n.id === id ? { ...n, read: true } : n) }));
+  markAllRead = () => this.setState(s => ({ notifications: s.notifications.map(n => ({ ...n, read: true })) }));
+  toggleNotificationsDemo = () => this.setState(s => ({ notificationsDemoEmpty: !s.notificationsDemoEmpty }));
+
+  setServiceKind = (kind) => this.setState({ serviceKind: kind });
+  retryService = () => this.setState({ serviceKind: 'loading' });
+
+  renderVals() {
+    const s = this.state;
+
+    const withPick = (isSel) => isSel
+      ? { bg: 'rgba(212,175,55,0.12)', borderStyle: '1px solid #d4af37', color: '#d4af37' }
+      : { bg: 'rgba(255,255,255,0.03)', borderStyle: '1px solid rgba(255,255,255,0.08)', color: '#a0aec0' };
+
+    const filtered = s.bookings.filter(b => b.kind === s.cabinetFilter);
+    const visibleBookings = filtered.map(b => {
+      const meta = STATUS_META[b.status];
+      const isRescheduling = s.reschedulingId === b.id;
+      return {
+        ...b,
+        statusLabel: meta.label,
+        statusBg: meta.bg,
+        statusColor: meta.color,
+        canManage: b.kind === 'upcoming',
+        rescheduleLabel: isRescheduling ? 'Свернуть' : 'Перенести',
+        isRescheduling,
+        onToggleReschedule: () => this.toggleReschedule(b.id),
+        onCancel: () => this.cancelBooking(b.id),
+        onConfirmReschedule: () => this.confirmReschedule(b.id)
+      };
+    });
+
+    const cabinetTabs = [
+      { key: 'upcoming', label: 'Предстоящие' },
+      { key: 'past', label: 'Прошедшие' },
+      { key: 'cancelled', label: 'Отменённые' }
+    ].map(t => ({ ...t, ...withPick(t.key === s.cabinetFilter), onSelect: () => this.setCabinetFilter(t.key) }));
+
+    const rescheduleDates = this.dates.map((d, i) => ({ ...d, ...withPick(i === s.rescheduleDateIdx), onSelect: () => this.selectRescheduleDate(i) }));
+    const rescheduleTimes = TIMES.map(t => ({ label: t, ...withPick(t === s.rescheduleTime), onSelect: () => this.selectRescheduleTime(t) }));
+
+    const unreadCount = s.notifications.filter(n => !n.read).length;
+    const rawNotifications = s.notificationsDemoEmpty ? [] : s.notifications;
+    const visibleNotifications = rawNotifications.map(n => ({
+      ...n,
+      bg: n.read ? 'rgba(255,255,255,0.03)' : 'rgba(212,175,55,0.06)',
+      dotColor: n.read ? 'transparent' : '#f4d03f',
+      onMarkRead: () => this.markRead(n.id)
+    }));
+
+    const navColor = (key) => s.screen === key ? '#d4af37' : '#a0aec0';
+    const navBorder = (key) => s.screen === key ? '2px solid #d4af37' : '2px solid transparent';
+
+    const serviceKindTabs = [
+      { key: 'loading', label: 'Загрузка' },
+      { key: 'empty', label: 'Пусто' },
+      { key: 'notfound', label: '404' },
+      { key: 'error', label: 'Ошибка' }
+    ].map(k => ({ ...k, ...withPick(k.key === s.serviceKind), onSelect: () => this.setServiceKind(k.key) }));
+
+    return {
+      isCabinet: s.screen === 'cabinet',
+      isProfile: s.screen === 'profile',
+      isNotifications: s.screen === 'notifications',
+      isService: s.screen === 'service',
+      showAccountNav: s.screen !== 'service',
+
+      goToLanding: this.goToLanding,
+      goToCabinet: this.goToCabinet,
+      goToProfile: this.goToProfile,
+      goToNotifications: this.goToNotifications,
+      goToServiceDemo: this.goToServiceDemo,
+
+      navCabinetColor: navColor('cabinet'), navCabinetBorder: navBorder('cabinet'),
+      navProfileColor: navColor('profile'), navProfileBorder: navBorder('profile'),
+      navNotifColor: navColor('notifications'), navNotifBorder: navBorder('notifications'),
+      hasUnread: unreadCount > 0,
+      unreadCount,
+
+      cabinetTabs,
+      cabinetIsEmpty: visibleBookings.length === 0,
+      visibleBookings,
+      rescheduleDates,
+      rescheduleTimes,
+
+      profileName: s.profileName,
+      profileEmail: s.profileEmail,
+      profileContact: s.profileContact,
+      profileDraftName: s.profileDraftName,
+      profileDraftContact: s.profileDraftContact,
+      isEditingProfile: s.isEditingProfile,
+      profileSaved: s.profileSaved,
+      startEditProfile: this.startEditProfile,
+      cancelEditProfile: this.cancelEditProfile,
+      setProfileDraftName: this.setProfileDraftName,
+      setProfileDraftContact: this.setProfileDraftContact,
+      saveProfile: this.saveProfile,
+
+      notificationsIsEmpty: visibleNotifications.length === 0,
+      visibleNotifications,
+      markAllRead: this.markAllRead,
+      toggleNotificationsDemo: this.toggleNotificationsDemo,
+      notificationsDemoToggleLabel: s.notificationsDemoEmpty ? 'Показать демо-уведомления' : 'Показать пустое состояние (демо)',
+
+      serviceKindTabs,
+      isServiceLoading: s.serviceKind === 'loading',
+      isServiceEmpty: s.serviceKind === 'empty',
+      isServiceNotFound: s.serviceKind === 'notfound',
+      isServiceError: s.serviceKind === 'error',
+      retryService: this.retryService
+    };
+  }
+}
+
+</script>
+</body>
+</html>
