@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Вход</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<header>
+  <a class="brand" href="index.html">Кабанов Олег</a>
+  <a class="back-link" href="index.html">← На главную</a>
+</header>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1>Вход</h1>
+    <p class="subtitle">Войдите, чтобы увидеть свои записи</p>
+
+    <div id="form-error" class="form-error"></div>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" />
+        <div class="field-error" id="email-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" />
+        <div class="field-error" id="password-error"></div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submit-btn">Войти</button>
+    </form>
+
+    <div class="auth-links">
+      Нет аккаунта? <a href="register.html">Зарегистрироваться</a><br>
+      <a href="restore-password.html">Забыли пароль?</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { loginClient } from "./js/api.js";
+  import { saveSession } from "./js/session.js";
+
+  const form = document.getElementById("login-form");
+  const submitBtn = document.getElementById("submit-btn");
+  const formError = document.getElementById("form-error");
+
+  const fields = {
+    email: document.getElementById("email"),
+    password: document.getElementById("password"),
+  };
+  const fieldErrors = {
+    email: document.getElementById("email-error"),
+    password: document.getElementById("password-error"),
+  };
+
+  function clearErrors() {
+    formError.classList.remove("visible");
+    formError.textContent = "";
+    for (const key of Object.keys(fields)) {
+      fields[key].classList.remove("invalid");
+      fieldErrors[key].textContent = "";
+    }
+  }
+
+  function setFieldError(field, message) {
+    if (!fields[field]) return;
+    fields[field].classList.add("invalid");
+    fieldErrors[field].textContent = message;
+  }
+
+  function setFormError(message) {
+    formError.textContent = message;
+    formError.classList.add("visible");
+  }
+
+  // Проверка на форме — только для удобства клиента. Настоящая
+  // проверка на сервере, и его ответ мы всё равно покажем ниже.
+  function validateClientSide() {
+    let ok = true;
+    const email = fields.email.value.trim();
+    const password = fields.password.value;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldError("email", "Введите корректный email");
+      ok = false;
+    }
+    if (!password || password.length < 8) {
+      setFieldError("password", "Пароль должен быть не короче 8 символов");
+      ok = false;
+    }
+    return ok;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    if (!validateClientSide()) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Входим…";
+
+    try {
+      const result = await loginClient({
+        email: fields.email.value.trim(),
+        password: fields.password.value,
+      });
+      saveSession(result);
+      window.location.href = "cabinet.html";
+    } catch (err) {
+      // err.field заполнен, только если сервер сам назвал поле
+      // (см. web/js/api.js) — для неверного пароля/email сервер
+      // намеренно не говорит, какое поле неверно (это тоже сделано
+      // специально на сервере, чтобы не подсказывать злоумышленнику).
+      if (err.field && fields[err.field]) {
+        setFieldError(err.field, err.message);
+      } else {
+        setFormError(err.message);
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Войти";
+    }
+  });
+</script>
+
+</body>
+</html>

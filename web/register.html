@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Регистрация</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<header>
+  <a class="brand" href="index.html">Кабанов Олег</a>
+  <a class="back-link" href="index.html">← На главную</a>
+</header>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1>Регистрация</h1>
+    <p class="subtitle">Создайте аккаунт, чтобы записаться на консультацию</p>
+
+    <div id="form-error" class="form-error"></div>
+
+    <form id="register-form" novalidate>
+      <div class="field">
+        <label for="name">Имя</label>
+        <input type="text" id="name" name="name" autocomplete="name" />
+        <div class="field-error" id="name-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" />
+        <div class="field-error" id="email-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" />
+        <div class="field-error" id="password-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="contact">Телефон или email для связи</label>
+        <input type="text" id="contact" name="contact" autocomplete="tel" />
+        <div class="field-error" id="contact-error"></div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submit-btn">Зарегистрироваться</button>
+    </form>
+
+    <div class="auth-links">
+      Уже есть аккаунт? <a href="login.html">Войти</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { registerClient } from "./js/api.js";
+  import { saveSession } from "./js/session.js";
+
+  const form = document.getElementById("register-form");
+  const submitBtn = document.getElementById("submit-btn");
+  const formError = document.getElementById("form-error");
+
+  const fields = {
+    name: document.getElementById("name"),
+    email: document.getElementById("email"),
+    password: document.getElementById("password"),
+    contact: document.getElementById("contact"),
+  };
+  const fieldErrors = {
+    name: document.getElementById("name-error"),
+    email: document.getElementById("email-error"),
+    password: document.getElementById("password-error"),
+    contact: document.getElementById("contact-error"),
+  };
+
+  function clearErrors() {
+    formError.classList.remove("visible");
+    formError.textContent = "";
+    for (const key of Object.keys(fields)) {
+      fields[key].classList.remove("invalid");
+      fieldErrors[key].textContent = "";
+    }
+  }
+
+  function setFieldError(field, message) {
+    if (!fields[field]) return;
+    fields[field].classList.add("invalid");
+    fieldErrors[field].textContent = message;
+  }
+
+  function setFormError(message) {
+    formError.textContent = message;
+    formError.classList.add("visible");
+  }
+
+  // Проверка на форме — только для удобства клиента. Настоящая
+  // проверка на сервере (server/src/validation.js), и её ответ мы
+  // всё равно покажем ниже, даже если тут проверка прошла.
+  function validateClientSide() {
+    let ok = true;
+
+    if (!fields.name.value.trim()) {
+      setFieldError("name", "Введите имя");
+      ok = false;
+    }
+    const email = fields.email.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldError("email", "Введите корректный email");
+      ok = false;
+    }
+    if (!fields.password.value || fields.password.value.length < 8) {
+      setFieldError("password", "Пароль должен быть не короче 8 символов");
+      ok = false;
+    }
+    if (!fields.contact.value.trim()) {
+      setFieldError("contact", "Укажите телефон или email для связи");
+      ok = false;
+    }
+    return ok;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    if (!validateClientSide()) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Регистрируем…";
+
+    try {
+      const result = await registerClient({
+        name: fields.name.value.trim(),
+        email: fields.email.value.trim(),
+        password: fields.password.value,
+        contact: fields.contact.value.trim(),
+      });
+      saveSession(result);
+      // По карте экранов — сразу в личный кабинет; у нового клиента
+      // записей ещё нет, так что кабинет откроется в своём обычном
+      // пустом состоянии, без отдельного флага "пусто".
+      window.location.href = "cabinet.html";
+    } catch (err) {
+      if (err.field && fields[err.field]) {
+        setFieldError(err.field, err.message);
+      } else {
+        setFormError(err.message);
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Зарегистрироваться";
+    }
+  });
+</script>
+
+</body>
+</html>
