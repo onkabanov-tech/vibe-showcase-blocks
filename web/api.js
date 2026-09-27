@@ -26,12 +26,16 @@ export class ApiError extends Error {
   }
 }
 
-async function apiRequest(method, path, body) {
+async function apiRequest(method, path, body, token) {
+  const headers = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (networkError) {
@@ -78,4 +82,9 @@ export async function loginClient({ email, password }) {
 // POST /api/auth/register — возвращает { client, session } при успехе.
 export async function registerClient({ name, email, password, contact }) {
   return apiRequest("POST", "/api/auth/register", { name, email, password, contact });
+}
+
+// POST /api/auth/logout — требует токен сессии клиента (Authorization: Bearer).
+export async function logoutClient(token) {
+  return apiRequest("POST", "/api/auth/logout", undefined, token);
 }
