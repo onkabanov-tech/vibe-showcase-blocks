@@ -74,6 +74,27 @@ export async function getMasters() {
   return data.masters;
 }
 
+// GET /api/masters/:masterId/availability — свободное время мастера на
+// конкретную дату для суммы выбранных услуг. Возвращает
+// { masterId, date, totalDurationMinutes, workingHours, busy, slots }.
+export async function getAvailability(masterId, date, serviceIds) {
+  const query = serviceIds.join(",");
+  return apiRequest("GET", `/api/masters/${masterId}/availability?date=${date}&serviceIds=${query}`);
+}
+
+// GET /api/bookings — записи вошедшего клиента. Требует токен сессии.
+export async function getMyBookings(token) {
+  const data = await apiRequest("GET", "/api/bookings", undefined, token);
+  return data.bookings;
+}
+
+// POST /api/bookings/:id/cancel — требует токен сессии; сервер сам
+// проверяет, что запись принадлежит этому клиенту (иначе 403).
+export async function cancelBookingRequest(bookingId, token) {
+  const data = await apiRequest("POST", `/api/bookings/${bookingId}/cancel`, {}, token);
+  return data.booking;
+}
+
 // POST /api/auth/login — возвращает { client, session } при успехе.
 export async function loginClient({ email, password }) {
   return apiRequest("POST", "/api/auth/login", { email, password });
