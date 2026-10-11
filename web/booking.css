@@ -1,0 +1,249 @@
+/* web/booking.css
+   Стили экрана «Запись» (web/booking.html).
+   Шаг-индикатор и карточки выбора — образца для копирования не было
+   нигде в проекте, сделано с нуля, тем же способом, что и остальной
+   код: цвета/шрифты только из tokens.css, размеры — те же литеральные
+   значения, что уже употреблены на лендинге и экранах входа. */
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+a { color: inherit; text-decoration: none; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-button);
+}
+.back-link {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Шаг-индикатор */
+.steps {
+  display: flex;
+  gap: 28px;
+  padding: 24px 40px 0;
+  max-width: 1100px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+.step .step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+/* Пройденные и текущий шаг — кликабельны и не приглушены */
+.step.done,
+.step.current {
+  opacity: 1;
+  cursor: pointer;
+  color: var(--color-button);
+}
+.step.done .step-num,
+.step.current .step-num {
+  border-color: var(--color-button);
+  color: var(--color-button);
+}
+.step.current {
+  cursor: default;
+}
+/* Будущие шаги — приглушены и некликабельны */
+.step.future {
+  cursor: default;
+}
+
+.booking-layout {
+  padding: 32px 40px 80px;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .booking-layout { grid-template-columns: 1fr; }
+}
+
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-button);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 16px;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.choice-card {
+  padding: 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+.choice-card.selected {
+  border-color: var(--color-button);
+  background: rgba(212, 175, 55, 0.08);
+}
+.choice-card .title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.choice-card .meta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Заглушка на время загрузки */
+.skeleton-card {
+  height: 76px;
+  border-radius: 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.api-error {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-card);
+}
+
+.step-nav {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--gradient-button);
+  color: var(--color-bg);
+  border: none;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.step-hint {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.notice {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-card);
+  display: none;
+}
+.notice.visible { display: block; }
+
+/* Сводка справа — тот же паттерн "Ваша запись", что в прототипе */
+.summary-panel {
+  position: sticky;
+  top: 24px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 28px;
+}
+.summary-panel h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  margin: 0 0 20px;
+  font-weight: 600;
+}
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+.summary-line .value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+.summary-empty {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.summary-total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+}
+.summary-total .value {
+  color: var(--color-button-light);
+}

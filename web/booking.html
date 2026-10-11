@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Запись на консультацию</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">← На главную</a>
+  <div class="brand">Запись на консультацию</div>
+</header>
+
+<nav class="steps" id="steps-indicator">
+  <!-- наполняется в JS: 1 Услуга, 2 Мастер — рабочие; 3 Дата, 4 Время,
+       5 Контакты — приглушены, ещё не свёрстаны -->
+</nav>
+
+<div class="booking-layout">
+  <div>
+
+    <!-- Шаг 1 · Услуга -->
+    <section class="step-panel active" id="panel-service">
+      <div class="step-label">Шаг 1 · Услуга (можно выбрать несколько)</div>
+      <div class="choice-grid" id="services-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="step-nav">
+        <button class="btn-primary" id="to-step-master" disabled>Далее</button>
+        <span class="step-hint" id="service-hint">Выберите хотя бы одну услугу</span>
+      </div>
+    </section>
+
+    <!-- Шаг 2 · Мастер -->
+    <section class="step-panel" id="panel-master">
+      <div class="step-label">Шаг 2 · Мастер</div>
+      <div class="choice-grid" id="masters-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="step-nav">
+        <button class="btn-primary" id="to-step-date" disabled>Далее</button>
+        <span class="step-hint" id="master-hint">Выберите мастера</span>
+      </div>
+      <div class="notice" id="not-ready-notice">
+        Шаги «Дата», «Время» и «Контакты» ещё не свёрстаны — вернёмся к ним позже.
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Сводка — тот же паттерн "Ваша запись", что в прототипе -->
+  <div class="summary-panel">
+    <h3>Ваша запись</h3>
+    <div id="summary-services">
+      <div class="summary-empty">Услуги ещё не выбраны</div>
+    </div>
+    <div id="summary-master" class="summary-line" style="display:none;">
+      <span>Мастер</span>
+      <span class="value" id="summary-master-name"></span>
+    </div>
+    <div class="summary-total" id="summary-total" style="display:none;">
+      <span>Итого</span>
+      <span class="value" id="summary-total-value"></span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { getServices, getMasters } from "./js/api.js";
+  import { getDraft, setServiceIds, setMasterId } from "./js/store.js";
+
+  // Шаги: 1 и 2 рабочие, 3–5 пока только в индикаторе как задел на будущее.
+  const STEP_DEFS = [
+    { key: "service", label: "Услуга" },
+    { key: "master", label: "Мастер" },
+    { key: "date", label: "Дата", future: true },
+    { key: "time", label: "Время", future: true },
+    { key: "contacts", label: "Контакты", future: true },
+  ];
+
+  let services = [];
+  let masters = [];
+  let selectedServiceIds = new Set(getDraft().serviceIds ?? []);
+  let selectedMasterId = getDraft().masterId ?? null;
+  let currentStep = "service";
+
+  function formatPrice(minorUnits) {
+    return Math.round(minorUnits / 100).toLocaleString("ru-RU") + " ₽";
+  }
+
+  function renderStepsIndicator() {
+    const nav = document.getElementById("steps-indicator");
+    nav.innerHTML = STEP_DEFS.map((step, i) => {
+      const stepIndex = STEP_DEFS.findIndex((s) => s.key === currentStep);
+      let cls = "future";
+      if (i < stepIndex) cls = "done";
+      else if (i === stepIndex) cls = "current";
+      return `<div class="step ${cls}" data-step="${step.key}"><span class="step-num">${i + 1}</span>${step.label}</div>`;
+    }).join("");
+
+    // Кликабельны только пройденные шаги — не будущие.
+    nav.querySelectorAll(".step.done").forEach((el) => {
+      el.addEventListener("click", () => goToStep(el.dataset.step));
+    });
+  }
+
+  function goToStep(key) {
+    currentStep = key;
+    document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
+    const panel = document.getElementById(`panel-${key}`);
+    if (panel) panel.classList.add("active");
+    renderStepsIndicator();
+  }
+
+  function renderSummary() {
+    const summaryServices = document.getElementById("summary-services");
+    const chosen = services.filter((s) => selectedServiceIds.has(s.id));
+
+    if (chosen.length === 0) {
+      summaryServices.innerHTML = '<div class="summary-empty">Услуги ещё не выбраны</div>';
+    } else {
+      summaryServices.innerHTML = chosen
+        .map((s) => `<div class="summary-line"><span>${s.name}</span><span class="value">${formatPrice(s.price)}</span></div>`)
+        .join("");
+    }
+
+    const masterBlock = document.getElementById("summary-master");
+    const master = masters.find((m) => m.id === selectedMasterId);
+    if (master) {
+      masterBlock.style.display = "flex";
+      document.getElementById("summary-master-name").textContent = master.name;
+    } else {
+      masterBlock.style.display = "none";
+    }
+
+    const totalBlock = document.getElementById("summary-total");
+    if (chosen.length > 0) {
+      // Сумма и длительность считаются здесь, на экране, из данных
+      // GET /api/services — отдельного эндпоинта, который считал бы
+      // это на сервере, нет (server никогда не отдаёт сумму цен, а
+      // totalDurationMinutes есть только внутри /availability, которому
+      // нужен уже выбранный мастер).
+      const totalPrice = chosen.reduce((sum, s) => sum + s.price, 0);
+      const totalDuration = chosen.reduce((sum, s) => sum + s.durationMinutes, 0);
+      totalBlock.style.display = "flex";
+      document.getElementById("summary-total-value").textContent = `${formatPrice(totalPrice)} · ${totalDuration} мин`;
+    } else {
+      totalBlock.style.display = "none";
+    }
+  }
+
+  function renderServices() {
+    const grid = document.getElementById("services-grid");
+    if (services.length === 0) {
+      grid.innerHTML = '<div class="api-error">Пока нет доступных услуг.</div>';
+      return;
+    }
+    grid.innerHTML = services
+      .map((s) => `
+        <div class="choice-card ${selectedServiceIds.has(s.id) ? "selected" : ""}" data-id="${s.id}">
+          <div class="title">${s.name}</div>
+          <div class="meta">${s.durationMinutes} мин · ${formatPrice(s.price)}</div>
+        </div>
+      `)
+      .join("");
+
+    grid.querySelectorAll(".choice-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const id = Number(card.dataset.id);
+        if (selectedServiceIds.has(id)) selectedServiceIds.delete(id);
+        else selectedServiceIds.add(id);
+        setServiceIds([...selectedServiceIds]);
+        renderServices();
+        renderSummary();
+        updateServiceStepState();
+      });
+    });
+  }
+
+  function renderMasters() {
+    const grid = document.getElementById("masters-grid");
+    if (masters.length === 0) {
+      grid.innerHTML = '<div class="api-error">Пока нет доступных мастеров.</div>';
+      return;
+    }
+    grid.innerHTML = masters
+      .map((m) => `
+        <div class="choice-card ${selectedMasterId === m.id ? "selected" : ""}" data-id="${m.id}">
+          <div class="title">${m.name}</div>
+          <div class="meta">${m.description ?? ""}</div>
+        </div>
+      `)
+      .join("");
+
+    grid.querySelectorAll(".choice-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        selectedMasterId = Number(card.dataset.id);
+        setMasterId(selectedMasterId);
+        renderMasters();
+        renderSummary();
+        updateMasterStepState();
+      });
+    });
+  }
+
+  function updateServiceStepState() {
+    const btn = document.getElementById("to-step-master");
+    const hint = document.getElementById("service-hint");
+    const ok = selectedServiceIds.size > 0;
+    btn.disabled = !ok;
+    hint.textContent = ok ? "" : "Выберите хотя бы одну услугу";
+  }
+
+  function updateMasterStepState() {
+    const btn = document.getElementById("to-step-date");
+    const hint = document.getElementById("master-hint");
+    const ok = selectedMasterId != null;
+    btn.disabled = !ok;
+    hint.textContent = ok ? "" : "Выберите мастера";
+  }
+
+  document.getElementById("to-step-master").addEventListener("click", () => {
+    if (selectedServiceIds.size === 0) return;
+    goToStep("master");
+  });
+
+  document.getElementById("to-step-date").addEventListener("click", () => {
+    if (selectedMasterId == null) return;
+    // Дальше вести некуда — шаги 3–5 ещё не свёрстаны. Честно говорим
+    // об этом, а не подставляем недоделанный экран.
+    document.getElementById("not-ready-notice").classList.add("visible");
+  });
+
+  renderStepsIndicator();
+  updateServiceStepState();
+  updateMasterStepState();
+  renderSummary();
+
+  getServices()
+    .then((data) => {
+      services = data;
+      renderServices();
+      renderSummary();
+    })
+    .catch((err) => {
+      document.getElementById("services-grid").innerHTML = `<div class="api-error">${err.message}</div>`;
+    });
+
+  getMasters()
+    .then((data) => {
+      masters = data;
+      renderMasters();
+      renderSummary();
+    })
+    .catch((err) => {
+      document.getElementById("masters-grid").innerHTML = `<div class="api-error">${err.message}</div>`;
+    });
+</script>
+
+</body>
+</html>

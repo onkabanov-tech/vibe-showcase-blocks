@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Мои записи</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .page {
+    padding: 32px 40px 80px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(26px, 3vw, 34px);
+    font-weight: 600;
+    margin: 0;
+  }
+  .btn-primary {
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--gradient-button);
+    color: var(--color-bg);
+    border: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .tab {
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+  }
+  .tab.active {
+    border-color: var(--color-button);
+    color: var(--color-button);
+    background: rgba(212, 175, 55, 0.08);
+  }
+
+  .booking-card {
+    padding: 20px 22px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+  .booking-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .booking-services { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .booking-meta { font-size: 13px; color: var(--color-text-secondary); }
+  .status-badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-pending { background: rgba(212, 175, 55, 0.15); color: var(--color-button-light); }
+  .status-confirmed { background: rgba(34, 197, 94, 0.15); color: var(--color-success); }
+  .status-cancelled { background: rgba(255, 255, 255, 0.06); color: var(--color-text-secondary); }
+
+  .booking-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .btn-cancel {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--color-button);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+  }
+  .btn-cancel:disabled { opacity: 0.5; cursor: default; }
+
+  .empty-state, .api-error {
+    padding: 48px 20px;
+    text-align: center;
+    border: 1px dashed var(--color-border);
+    border-radius: 16px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+  }
+  .loading { padding: 24px; text-align: center; color: var(--color-text-secondary); font-size: 13px; }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--color-border); border-top-color: var(--color-button);
+    animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="client-header" data-active="cabinet"></div>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Мои записи</h1>
+    <a class="btn-primary" href="booking.html">Новая запись</a>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="upcoming">Предстоящие</div>
+    <div class="tab" data-tab="past">Прошедшие</div>
+    <div class="tab" data-tab="cancelled">Отменённые</div>
+  </div>
+
+  <div id="bookings-list">
+    <div class="loading"><span class="spinner"></span>Загружаем ваши записи…</div>
+  </div>
+</div>
+
+<script type="module">
+  import { getMyBookings, cancelBookingRequest } from "./js/api.js";
+  import { getSession } from "./js/session.js";
+
+  const stored = getSession();
+  const isLoggedIn = !!stored?.session?.token && new Date(stored.session.expiresAt) > new Date();
+  if (!isLoggedIn) {
+    window.location.href = "login.html";
+  }
+
+  let bookings = [];
+  let activeTab = "upcoming";
+  let loadError = null;
+
+  function formatDateTime(iso) {
+    return new Date(iso).toLocaleString("ru-RU", {
+      day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+    });
+  }
+  function formatPrice(minorUnits) {
+    return Math.round(minorUnits / 100).toLocaleString("ru-RU") + " ₽";
+  }
+  const STATUS_LABELS = { pending: "Ожидает подтверждения", confirmed: "Подтверждено", cancelled: "Отменено" };
+
+  function kindOf(b) {
+    if (b.status === "cancelled") return "cancelled";
+    return new Date(b.startsAt) >= new Date() ? "upcoming" : "past";
+  }
+
+  function render() {
+    const list = document.getElementById("bookings-list");
+
+    if (loadError) {
+      list.innerHTML = `<div class="api-error">${loadError}</div>`;
+      return;
+    }
+
+    const filtered = bookings.filter((b) => kindOf(b) === activeTab);
+
+    if (filtered.length === 0) {
+      const emptyText = {
+        upcoming: "Нет предстоящих записей",
+        past: "Пока нет прошедших записей",
+        cancelled: "Нет отменённых записей",
+      }[activeTab];
+      list.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered
+      .map((b) => {
+        const serviceNames = b.services.map((s) => s.name).join(", ");
+        const canCancel = activeTab === "upcoming" && b.status !== "cancelled";
+        return `
+          <div class="booking-card">
+            <div class="booking-top">
+              <div>
+                <div class="booking-services">${serviceNames}</div>
+                <div class="booking-meta">${b.master?.name ?? ""} · ${formatDateTime(b.startsAt)} · ${b.code} · ${formatPrice(b.totalPrice)}</div>
+              </div>
+              <span class="status-badge status-${b.status}">${STATUS_LABELS[b.status] ?? b.status}</span>
+            </div>
+            ${canCancel ? `<div class="booking-actions"><button class="btn-cancel" data-id="${b.id}">Отменить</button></div>` : ""}
+          </div>
+        `;
+      })
+      .join("");
+
+    list.querySelectorAll(".btn-cancel").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        btn.textContent = "Отменяем…";
+        try {
+          const updated = await cancelBookingRequest(Number(btn.dataset.id), stored.session.token);
+          bookings = bookings.map((b) => (b.id === updated.id ? updated : b));
+          render();
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = "Отменить";
+          alert(err.message);
+        }
+      });
+    });
+  }
+
+  document.getElementById("tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".tab");
+    if (!tab) return;
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+    render();
+  });
+
+  if (isLoggedIn) {
+    getMyBookings(stored.session.token)
+      .then((data) => {
+        bookings = data;
+        render();
+      })
+      .catch((err) => {
+        loadError = err.message;
+        render();
+      });
+  }
+</script>
+
+<script type="module" src="./js/header.js"></script>
+
+</body>
+</html>
