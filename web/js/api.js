@@ -8,8 +8,8 @@
 // Адрес сервера задан здесь одной константой, чтобы поменять его в одном
 // месте, если сервер будет запущен не локально и не на этом порту
 // (см. server/.env.example — PORT=3000).
-const API_BASE_URL = "https://vibe-showcase-blocks.onrender.com";
 
+const API_BASE_URL = "https://vibe-showcase-blocks.onrender.com";
 // code и field — реальные code/details.field из ответа сервера
 // (см. server/src/http/respond.js: { error: { code, message, details } }),
 // а не выдуманные на фронте. field заполнен только когда сервер
