@@ -557,7 +557,29 @@
     }
 
     // ========== ШАГ 4: Слоты ==========
-   async function loadSlots(dateStr) {
+   // Извлекает время HH:MM из любого формата слота
+function extractTime(slot) {
+  if (typeof slot === 'string') {
+    // Если это ISO-строка "2026-10-15T07:00:15Z" — берём время
+    if (slot.includes('T')) {
+      const match = slot.match(/T(\d{2}:\d{2})/);
+      return match ? match[1] : slot;
+    }
+    // Если уже "14:30" — возвращаем как есть
+    return slot;
+  }
+  // Если объект — берём поле time или startsAt
+  if (typeof slot === 'object') {
+    if (slot.time) return slot.time;
+    if (slot.startsAt) {
+      const match = slot.startsAt.match(/T(\d{2}:\d{2})/);
+      return match ? match[1] : String(slot.startsAt);
+    }
+  }
+  return String(slot);
+}
+
+async function loadSlots(dateStr) {
   const container = $('slots-container');
   container.className = 'loading';
   container.textContent = 'Загрузка свободного времени…';
@@ -567,7 +589,6 @@
     container.innerHTML = '';
     container.className = 'slots-grid';
     
-    // Проверяем формат данных — slots может быть массивом строк или объектов
     const slots = data.slots || [];
     if (slots.length === 0) {
       container.className = 'loading';
@@ -577,18 +598,16 @@
     }
     
     slots.forEach(slot => {
+      const timeStr = extractTime(slot);
       const card = document.createElement('div');
       card.className = 'slot-card';
-      
-      // Если slot — это объект, берём поле time или startsAt, иначе используем как есть
-      const timeStr = typeof slot === 'string' ? slot : (slot.time || slot.startsAt || String(slot));
       card.textContent = timeStr;
       
       card.addEventListener('click', () => {
         container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
-        state.slot = timeStr;
-        state.startsAt = toIsoUtc(dateStr, timeStr);
+        state.slot = timeStr; // Сохраняем только время "14:30"
+        state.startsAt = toIsoUtc(dateStr, timeStr); // Формируем полную ISO-строку
         $('btn-to-step-5').disabled = false;
         updateSummary();
       });
