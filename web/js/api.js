@@ -116,3 +116,25 @@ export async function registerClient({ name, email, password, contact }) {
 export async function logoutClient(token) {
   return apiRequest("POST", "/api/auth/logout", undefined, token);
 }
+// POST /api/admin/login — вход администратора. Возвращает { admin, session }.
+export async function loginAdmin({ username, password }) {
+  return apiRequest("POST", "/api/admin/login", { username, password });
+}
+
+// POST /api/admin/logout — выход администратора.
+export async function logoutAdmin(token) {
+  return apiRequest("POST", "/api/admin/logout", undefined, token);
+}
+
+// GET /api/admin/bookings — все записи (для админки).
+export async function getAllBookings(token, { status } = {}) {
+  const query = status ? `?status=${status}` : "";
+  const data = await apiRequest("GET", `/api/admin/bookings${query}`, undefined, token);
+  return data.bookings;
+}
+
+// POST /api/admin/bookings/:id/status — сменить статус записи.
+export async function setBookingStatus(bookingId, status, token) {
+  const data = await apiRequest("POST", `/api/admin/bookings/${bookingId}/status`, { status }, token);
+  return data.booking;
+}
