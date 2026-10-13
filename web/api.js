@@ -109,3 +109,10 @@ export async function registerClient({ name, email, password, contact }) {
 export async function logoutClient(token) {
   return apiRequest("POST", "/api/auth/logout", undefined, token);
 }
+// POST /api/bookings — создать запись. Требует токен сессии.
+export async function createBooking({ masterId, serviceIds, startsAt, comment }, token) {
+  const body = { masterId, serviceIds, startsAt };
+  if (comment) body.comment = comment;
+  const data = await apiRequest("POST", "/api/bookings", body, token);
+  return data.booking;
+}
