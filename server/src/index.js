@@ -1,15 +1,4 @@
 
-// ========================================================// Добавить CORS заголовки
-res.setHeader('Access-Control-Allow-Origin', '*');
-res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-// Обработать preflight запросы (OPTIONS)
-if (req.method === 'OPTIONS') {
-  res.writeHead(204);
-  res.end();
-  return;
-}
 // Точка входа HTTP-сервера. Запуск: npm start (см. package.json).
 import { createServer } from "node:http";
 import { loadEnv } from "./env.js";
@@ -18,10 +7,25 @@ import { purgeExpiredSessions } from "./sessions.js";
 import { purgeExpiredHolds } from "./holds.js";
 
 loadEnv();
-
 const PORT = Number(process.env.PORT ?? 3000);
 
 const server = createServer((req, res) => {
+  // ========================================================
+  // 1. ДОБАВЛЯЕМ CORS ЗАГОЛОВКИ ЗДЕСЬ (внутри функции!)
+  // ========================================================
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // 2. Обрабатываем preflight запросы (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  // ========================================================
+
+  // 3. Основной обработчик запросов
   handleRequest(req, res).catch((error) => {
     console.error("Необработанная ошибка запроса:", error);
     if (!res.headersSent) {
@@ -31,9 +35,7 @@ const server = createServer((req, res) => {
   });
 });
 
-// Долгоживущий процесс (в отличие от migrate/seed) — можно позволить себе
-// периодическую подчистку истёкших сессий и удержаний слотов, а не только
-// ленивую чистку "по факту обращения".
+// Долгоживущий процесс — периодическая подчистка истёкших сессий и удержаний
 const CLEANUP_INTERVAL_MS = 60_000;
 const cleanupTimer = setInterval(() => {
   try {
