@@ -557,42 +557,48 @@
     }
 
     // ========== ШАГ 4: Слоты ==========
-    async function loadSlots(dateStr) {
-      const container = $('slots-container');
+   async function loadSlots(dateStr) {
+  const container = $('slots-container');
+  container.className = 'loading';
+  container.textContent = 'Загрузка свободного времени…';
+  try {
+    const serviceIds = state.services.map(s => s.id);
+    const data = await getAvailability(state.master.id, dateStr, serviceIds);
+    container.innerHTML = '';
+    container.className = 'slots-grid';
+    
+    // Проверяем формат данных — slots может быть массивом строк или объектов
+    const slots = data.slots || [];
+    if (slots.length === 0) {
       container.className = 'loading';
-      container.textContent = 'Загрузка свободного времени…';
-      try {
-        const serviceIds = state.services.map(s => s.id);
-        const data = await getAvailability(state.master.id, dateStr, serviceIds);
-        container.innerHTML = '';
-        container.className = 'slots-grid';
-        if (!data.slots || data.slots.length === 0) {
-          container.className = 'loading';
-          container.textContent = 'На эту дату нет свободного времени';
-          $('btn-to-step-5').disabled = true;
-          return;
-        }
-        data.slots.forEach(slot => {
-          const card = document.createElement('div');
-          card.className = 'slot-card';
-          card.textContent = slot;
-          card.addEventListener('click', () => {
-            container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            state.slot = slot;
-            // Формируем ISO-строку: дата + время + Z (UTC)
-            // Сервер сам переведёт в UTC по SALON_UTC_OFFSET_MINUTES
-            state.startsAt = `${dateStr}T${slot}:00Z`;
-            $('btn-to-step-5').disabled = false;
-            updateSummary();
-          });
-          container.appendChild(card);
-        });
-      } catch (e) {
-        container.textContent = 'Не удалось загрузить слоты';
-        showError(e.message);
-      }
+      container.textContent = 'На эту дату нет свободного времени';
+      $('btn-to-step-5').disabled = true;
+      return;
     }
+    
+    slots.forEach(slot => {
+      const card = document.createElement('div');
+      card.className = 'slot-card';
+      
+      // Если slot — это объект, берём поле time или startsAt, иначе используем как есть
+      const timeStr = typeof slot === 'string' ? slot : (slot.time || slot.startsAt || String(slot));
+      card.textContent = timeStr;
+      
+      card.addEventListener('click', () => {
+        container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        state.slot = timeStr;
+        state.startsAt = toIsoUtc(dateStr, timeStr);
+        $('btn-to-step-5').disabled = false;
+        updateSummary();
+      });
+      container.appendChild(card);
+    });
+  } catch (e) {
+    container.textContent = 'Не удалось загрузить слоты';
+    showError(e.message);
+  }
+}
 
     // ========== ШАГ 5: Авторизация + отправка ==========
     let authMode = 'login';
