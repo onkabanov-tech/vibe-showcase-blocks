@@ -1,4 +1,15 @@
-// Добавить CORS заголовки
+  // === ДОБАВИТЬ ЭТИ СТРОКИ В САМОЕ НАЧАЛО ОБРАБОТЧИКА ===
+  res.setHeader("Access-Control-Allow-Origin", "*"); // Разрешаем запросы с любого домена (для прототипа это нормально)
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Если браузер делает "предварительный" запрос (OPTIONS), отвечаем сразу и прерываем выполнение
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  // ========================================================// Добавить CORS заголовки
 res.setHeader('Access-Control-Allow-Origin', '*');
 res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
