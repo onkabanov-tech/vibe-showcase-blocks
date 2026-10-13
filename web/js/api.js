@@ -94,7 +94,14 @@ export async function cancelBookingRequest(bookingId, token) {
   const data = await apiRequest("POST", `/api/bookings/${bookingId}/cancel`, {}, token);
   return data.booking;
 }
-
+// POST /api/bookings — создать запись. Требует токен сессии.
+// Возвращает объект booking с полями code, status, startsAt, services, master.
+export async function createBooking({ masterId, serviceIds, startsAt, comment }, token) {
+  const body = { masterId, serviceIds, startsAt };
+  if (comment) body.comment = comment;
+  const data = await apiRequest("POST", "/api/bookings", body, token);
+  return data.booking;
+}
 // POST /api/auth/login — возвращает { client, session } при успехе.
 export async function loginClient({ email, password }) {
   return apiRequest("POST", "/api/auth/login", { email, password });
