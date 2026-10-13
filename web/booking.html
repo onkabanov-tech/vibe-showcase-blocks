@@ -436,16 +436,16 @@
       document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
       window.scrollTo(0, 0);
     };
-    const updateSummary = () => {
-      $('sum-services').textContent = state.services.length
-        ? state.services.map(s => s.name).join(', ')
-        : '—';
-      $('sum-master').textContent = state.master?.name ?? '—';
-      $('sum-date').textContent = state.date ?? '—';
-      $('sum-time').textContent = state.slot ?? '—';
-      const total = state.services.reduce((sum, s) => sum + s.price, 0);
-      $('sum-total').textContent = total ? `${(total / 100).toFixed(2)} ₽` : '—';
-    };
+   const updateSummary = () => {
+  $('sum-services').textContent = state.services.length
+    ? state.services.map(s => s.name).join(', ')
+    : '—';
+  $('sum-master').textContent = state.master?.name ?? '—';
+  $('sum-date').textContent = state.date ? formatDateLabel(state.date) : '—';
+  $('sum-time').textContent = state.slot ?? '—';
+  const total = state.services.reduce((sum, s) => sum + s.price, 0);
+  $('sum-total').textContent = total ? `${(total / 100).toFixed(0)} ₽` : '—';
+};
     const formatPrice = (kopecks) => `${(kopecks / 100).toFixed(0)} ₽`;
     const formatDateLabel = (dateStr) => {
       const d = new Date(dateStr);
