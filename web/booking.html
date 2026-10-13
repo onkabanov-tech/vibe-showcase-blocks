@@ -1,269 +1,694 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Запись на консультацию</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="booking.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Запись на консультацию</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .back-link {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--color-button); }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 40px;
+    }
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0 0 32px;
+    }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--color-text-primary);
+    }
+    .step-title .step-num {
+      color: var(--color-button);
+      margin-right: 8px;
+    }
+    .services-grid, .masters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .service-card, .master-card {
+      padding: 20px;
+      border: 2px solid var(--color-border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--color-bg-card);
+    }
+    .service-card:hover, .master-card:hover {
+      border-color: var(--color-button);
+    }
+    .service-card.selected, .master-card.selected {
+      border-color: var(--color-button);
+      background: var(--color-button-light);
+    }
+    .service-card h3, .master-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .service-card p, .master-card p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .service-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    .dates-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+      .dates-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .date-card {
+      padding: 12px 8px;
+      border: 2px solid var(--color-border);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--color-bg-card);
+    }
+    .date-card:hover { border-color: var(--color-button); }
+    .date-card.selected {
+      border-color: var(--color-button);
+      background: var(--color-button-light);
+    }
+    .date-card.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .date-weekday {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+    }
+    .date-day {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 4px 0;
+    }
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .slot-card {
+      padding: 14px;
+      border: 2px solid var(--color-border);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      background: var(--color-bg-card);
+    }
+    .slot-card:hover { border-color: var(--color-button); }
+    .slot-card.selected {
+      border-color: var(--color-button);
+      background: var(--color-button-light);
+    }
+    .field {
+      margin-bottom: 18px;
+    }
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+    .field input, .field textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 15px;
+    }
+    .field input:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--color-button);
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: none;
+      background: var(--gradient-button);
+      color: var(--color-bg);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .sidebar {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      padding: 24px;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      background: var(--color-bg-card);
+    }
+    .sidebar h2 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      margin: 0 0 16px;
+    }
+    .sidebar-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .sidebar-row:last-child { border-bottom: none; }
+    .sidebar-row .label { color: var(--color-text-secondary); }
+    .sidebar-row .value { font-weight: 600; }
+    .sidebar-total {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid var(--color-border);
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .error {
+      color: var(--color-button);
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--color-button);
+      border-radius: 8px;
+      background: var(--color-button-light);
+      margin-bottom: 16px;
+      display: none;
+    }
+    .error.visible { display: block; }
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--color-text-secondary);
+    }
+    .auth-box {
+      padding: 20px;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      background: var(--color-bg-card);
+      margin-bottom: 20px;
+    }
+    .auth-box h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .auth-tab.active {
+      background: var(--color-button-light);
+      border-color: var(--color-button);
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <a href="index.html" class="back-link">← На главную</a>
+  </header>
 
-<header>
-  <a class="back-link" href="index.html">← На главную</a>
-  <div class="brand">Запись на консультацию</div>
-</header>
+  <div class="container">
+    <main>
+      <h1>Запись на консультацию</h1>
 
-<nav class="steps" id="steps-indicator">
-  <!-- наполняется в JS: 1 Услуга, 2 Мастер — рабочие; 3 Дата, 4 Время,
-       5 Контакты — приглушены, ещё не свёрстаны -->
-</nav>
+      <div class="error" id="error-box"></div>
 
-<div class="booking-layout">
-  <div>
+      <!-- Шаг 1: Услуга -->
+      <section class="step active" data-step="1">
+        <div class="step-title"><span class="step-num">Шаг 1</span>· Услуга (можно выбрать несколько)</div>
+        <div id="services-container" class="loading">Загрузка услуг…</div>
+        <div class="btn-row">
+          <button class="btn" id="btn-to-step-2" disabled>Далее</button>
+        </div>
+      </section>
 
-    <!-- Шаг 1 · Услуга -->
-    <section class="step-panel active" id="panel-service">
-      <div class="step-label">Шаг 1 · Услуга (можно выбрать несколько)</div>
-      <div class="choice-grid" id="services-grid">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
+      <!-- Шаг 2: Мастер -->
+      <section class="step" data-step="2">
+        <div class="step-title"><span class="step-num">Шаг 2</span>· Мастер</div>
+        <div id="masters-container" class="loading">Загрузка мастеров…</div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-back-1">Назад</button>
+          <button class="btn" id="btn-to-step-3" disabled>Далее</button>
+        </div>
+      </section>
+
+      <!-- Шаг 3: Дата -->
+      <section class="step" data-step="3">
+        <div class="step-title"><span class="step-num">Шаг 3</span>· Дата</div>
+        <div id="dates-container" class="loading">Загрузка дат…</div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-back-2">Назад</button>
+          <button class="btn" id="btn-to-step-4" disabled>Далее</button>
+        </div>
+      </section>
+
+      <!-- Шаг 4: Время -->
+      <section class="step" data-step="4">
+        <div class="step-title"><span class="step-num">Шаг 4</span>· Время</div>
+        <div id="slots-container" class="loading">Выберите дату на предыдущем шаге</div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-back-3">Назад</button>
+          <button class="btn" id="btn-to-step-5" disabled>Далее</button>
+        </div>
+      </section>
+
+      <!-- Шаг 5: Контакты -->
+      <section class="step" data-step="5">
+        <div class="step-title"><span class="step-num">Шаг 5</span>· Контакты</div>
+
+        <div id="auth-section">
+          <div class="auth-box">
+            <div class="auth-tabs">
+              <button class="auth-tab active" data-mode="login">Войти</button>
+              <button class="auth-tab" data-mode="register">Регистрация</button>
+            </div>
+            <div id="auth-form">
+              <div class="field">
+                <label>Имя</label>
+                <input type="text" id="field-name" placeholder="Как к вам обращаться">
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="field-email" placeholder="your@email.com">
+              </div>
+              <div class="field" id="field-contact-wrap">
+                <label>Телефон или email для связи</label>
+                <input type="text" id="field-contact" placeholder="+7 999 123-45-67">
+              </div>
+              <div class="field">
+                <label>Пароль</label>
+                <input type="password" id="field-password" placeholder="Минимум 6 символов">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Комментарий (необязательно)</label>
+          <textarea id="field-comment" placeholder="Опишите вашу задачу"></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-back-4">Назад</button>
+          <button class="btn" id="btn-submit">Подтвердить запись</button>
+        </div>
+      </section>
+
+      <!-- Экран подтверждения -->
+      <section class="step" data-step="success">
+        <div class="step-title">✅ Запись создана</div>
+        <div id="success-content"></div>
+        <div class="btn-row">
+          <a href="index.html" class="btn">На главную</a>
+          <a href="cabinet.html" class="btn btn-secondary">В личный кабинет</a>
+        </div>
+      </section>
+    </main>
+
+    <!-- Сайдбар с резюме -->
+    <aside class="sidebar">
+      <h2>Ваша запись</h2>
+      <div class="sidebar-row">
+        <span class="label">Услуги</span>
+        <span class="value" id="sum-services">—</span>
       </div>
-      <div class="step-nav">
-        <button class="btn-primary" id="to-step-master" disabled>Далее</button>
-        <span class="step-hint" id="service-hint">Выберите хотя бы одну услугу</span>
+      <div class="sidebar-row">
+        <span class="label">Мастер</span>
+        <span class="value" id="sum-master">—</span>
       </div>
-    </section>
-
-    <!-- Шаг 2 · Мастер -->
-    <section class="step-panel" id="panel-master">
-      <div class="step-label">Шаг 2 · Мастер</div>
-      <div class="choice-grid" id="masters-grid">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
+      <div class="sidebar-row">
+        <span class="label">Дата</span>
+        <span class="value" id="sum-date">—</span>
       </div>
-      <div class="step-nav">
-        <button class="btn-primary" id="to-step-date" disabled>Далее</button>
-        <span class="step-hint" id="master-hint">Выберите мастера</span>
+      <div class="sidebar-row">
+        <span class="label">Время</span>
+        <span class="value" id="sum-time">—</span>
       </div>
-      <div class="notice" id="not-ready-notice">
-        Шаги «Дата», «Время» и «Контакты» ещё не свёрстаны — вернёмся к ним позже.
+      <div class="sidebar-row sidebar-total">
+        <span class="label">Итого</span>
+        <span class="value" id="sum-total">—</span>
       </div>
-    </section>
-
+    </aside>
   </div>
 
-  <!-- Сводка — тот же паттерн "Ваша запись", что в прототипе -->
-  <div class="summary-panel">
-    <h3>Ваша запись</h3>
-    <div id="summary-services">
-      <div class="summary-empty">Услуги ещё не выбраны</div>
-    </div>
-    <div id="summary-master" class="summary-line" style="display:none;">
-      <span>Мастер</span>
-      <span class="value" id="summary-master-name"></span>
-    </div>
-    <div class="summary-total" id="summary-total" style="display:none;">
-      <span>Итого</span>
-      <span class="value" id="summary-total-value"></span>
-    </div>
-  </div>
-</div>
+  <script type="module">
+    import { getServices, getMasters, getAvailability, createBooking, loginClient, registerClient } from './js/api.js';
+    import { getSession, saveSession, clearSession } from './js/session.js';
 
-<script type="module">
-  import { getServices, getMasters } from "./js/api.js";
-  import { getDraft, setServiceIds, setMasterId } from "./js/store.js";
+    // Состояние формы
+    const state = {
+      services: [],          // выбранные услуги {id, name, durationMinutes, price}
+      master: null,          // выбранный мастер {id, name}
+      date: null,            // выбранная дата 'YYYY-MM-DD'
+      slot: null,            // выбранное время 'HH:MM'
+      startsAt: null,        // ISO-строка для отправки на сервер
+    };
 
-  // Шаги: 1 и 2 рабочие, 3–5 пока только в индикаторе как задел на будущее.
-  const STEP_DEFS = [
-    { key: "service", label: "Услуга" },
-    { key: "master", label: "Мастер" },
-    { key: "date", label: "Дата", future: true },
-    { key: "time", label: "Время", future: true },
-    { key: "contacts", label: "Контакты", future: true },
-  ];
+    const allServices = [];
+    const allMasters = [];
 
-  let services = [];
-  let masters = [];
-  let selectedServiceIds = new Set(getDraft().serviceIds ?? []);
-  let selectedMasterId = getDraft().masterId ?? null;
-  let currentStep = "service";
+    // Утилиты
+    const $ = (id) => document.getElementById(id);
+    const showError = (msg) => {
+      const box = $('error-box');
+      box.textContent = msg;
+      box.classList.add('visible');
+      setTimeout(() => box.classList.remove('visible'), 5000);
+    };
+    const goToStep = (n) => {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
+      window.scrollTo(0, 0);
+    };
+    const updateSummary = () => {
+      $('sum-services').textContent = state.services.length
+        ? state.services.map(s => s.name).join(', ')
+        : '—';
+      $('sum-master').textContent = state.master?.name ?? '—';
+      $('sum-date').textContent = state.date ?? '—';
+      $('sum-time').textContent = state.slot ?? '—';
+      const total = state.services.reduce((sum, s) => sum + s.price, 0);
+      $('sum-total').textContent = total ? `${(total / 100).toFixed(2)} ₽` : '—';
+    };
+    const formatPrice = (kopecks) => `${(kopecks / 100).toFixed(0)} ₽`;
+    const formatDateLabel = (dateStr) => {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    };
 
-  function formatPrice(minorUnits) {
-    return Math.round(minorUnits / 100).toLocaleString("ru-RU") + " ₽";
-  }
-
-  function renderStepsIndicator() {
-    const nav = document.getElementById("steps-indicator");
-    nav.innerHTML = STEP_DEFS.map((step, i) => {
-      const stepIndex = STEP_DEFS.findIndex((s) => s.key === currentStep);
-      let cls = "future";
-      if (i < stepIndex) cls = "done";
-      else if (i === stepIndex) cls = "current";
-      return `<div class="step ${cls}" data-step="${step.key}"><span class="step-num">${i + 1}</span>${step.label}</div>`;
-    }).join("");
-
-    // Кликабельны только пройденные шаги — не будущие.
-    nav.querySelectorAll(".step.done").forEach((el) => {
-      el.addEventListener("click", () => goToStep(el.dataset.step));
-    });
-  }
-
-  function goToStep(key) {
-    currentStep = key;
-    document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
-    const panel = document.getElementById(`panel-${key}`);
-    if (panel) panel.classList.add("active");
-    renderStepsIndicator();
-  }
-
-  function renderSummary() {
-    const summaryServices = document.getElementById("summary-services");
-    const chosen = services.filter((s) => selectedServiceIds.has(s.id));
-
-    if (chosen.length === 0) {
-      summaryServices.innerHTML = '<div class="summary-empty">Услуги ещё не выбраны</div>';
-    } else {
-      summaryServices.innerHTML = chosen
-        .map((s) => `<div class="summary-line"><span>${s.name}</span><span class="value">${formatPrice(s.price)}</span></div>`)
-        .join("");
+    // ========== ШАГ 1: Услуги ==========
+    async function loadServices() {
+      try {
+        const services = await getServices();
+        allServices.push(...services);
+        const container = $('services-container');
+        container.innerHTML = '';
+        container.className = 'services-grid';
+        services.forEach(s => {
+          const card = document.createElement('div');
+          card.className = 'service-card';
+          card.dataset.id = s.id;
+          card.innerHTML = `
+            <h3>${s.name}</h3>
+            <p>${s.description}</p>
+            <div class="service-meta">
+              <span>${s.durationMinutes} мин</span>
+              <span>${formatPrice(s.price)}</span>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            card.classList.toggle('selected');
+            const id = Number(card.dataset.id);
+            if (card.classList.contains('selected')) {
+              state.services.push(allServices.find(x => x.id === id));
+            } else {
+              state.services = state.services.filter(x => x.id !== id);
+            }
+            $('btn-to-step-2').disabled = state.services.length === 0;
+            updateSummary();
+          });
+          container.appendChild(card);
+        });
+      } catch (e) {
+        $('services-container').textContent = 'Не удалось загрузить услуги';
+        showError(e.message);
+      }
     }
 
-    const masterBlock = document.getElementById("summary-master");
-    const master = masters.find((m) => m.id === selectedMasterId);
-    if (master) {
-      masterBlock.style.display = "flex";
-      document.getElementById("summary-master-name").textContent = master.name;
-    } else {
-      masterBlock.style.display = "none";
+    // ========== ШАГ 2: Мастера ==========
+    async function loadMasters() {
+      try {
+        const masters = await getMasters();
+        allMasters.push(...masters);
+        const container = $('masters-container');
+        container.innerHTML = '';
+        container.className = 'masters-grid';
+        masters.forEach(m => {
+          const card = document.createElement('div');
+          card.className = 'master-card';
+          card.dataset.id = m.id;
+          card.innerHTML = `
+            <h3>${m.name}</h3>
+            <p>${m.description ?? ''}</p>
+          `;
+          card.addEventListener('click', () => {
+            container.querySelectorAll('.master-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.master = allMasters.find(x => x.id === m.id);
+            $('btn-to-step-3').disabled = false;
+            updateSummary();
+          });
+          container.appendChild(card);
+        });
+      } catch (e) {
+        $('masters-container').textContent = 'Не удалось загрузить мастеров';
+        showError(e.message);
+      }
     }
 
-    const totalBlock = document.getElementById("summary-total");
-    if (chosen.length > 0) {
-      // Сумма и длительность считаются здесь, на экране, из данных
-      // GET /api/services — отдельного эндпоинта, который считал бы
-      // это на сервере, нет (server никогда не отдаёт сумму цен, а
-      // totalDurationMinutes есть только внутри /availability, которому
-      // нужен уже выбранный мастер).
-      const totalPrice = chosen.reduce((sum, s) => sum + s.price, 0);
-      const totalDuration = chosen.reduce((sum, s) => sum + s.durationMinutes, 0);
-      totalBlock.style.display = "flex";
-      document.getElementById("summary-total-value").textContent = `${formatPrice(totalPrice)} · ${totalDuration} мин`;
-    } else {
-      totalBlock.style.display = "none";
-    }
-  }
+    // ========== ШАГ 3: Даты ==========
+    function renderDates() {
+      const container = $('dates-container');
+      container.innerHTML = '';
+      container.className = 'dates-grid';
+      const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
-  function renderServices() {
-    const grid = document.getElementById("services-grid");
-    if (services.length === 0) {
-      grid.innerHTML = '<div class="api-error">Пока нет доступных услуг.</div>';
-      return;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const card = document.createElement('div');
+        card.className = 'date-card';
+        card.dataset.date = dateStr;
+        card.innerHTML = `
+          <div class="date-weekday">${weekdays[d.getDay()]}</div>
+          <div class="date-day">${d.getDate()} ${months[d.getMonth()]}</div>
+        `;
+        card.addEventListener('click', async () => {
+          if (card.classList.contains('disabled')) return;
+          container.querySelectorAll('.date-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          state.date = dateStr;
+          state.slot = null;
+          state.startsAt = null;
+          $('btn-to-step-4').disabled = false;
+          updateSummary();
+          await loadSlots(dateStr);
+        });
+        container.appendChild(card);
+      }
     }
-    grid.innerHTML = services
-      .map((s) => `
-        <div class="choice-card ${selectedServiceIds.has(s.id) ? "selected" : ""}" data-id="${s.id}">
-          <div class="title">${s.name}</div>
-          <div class="meta">${s.durationMinutes} мин · ${formatPrice(s.price)}</div>
-        </div>
-      `)
-      .join("");
 
-    grid.querySelectorAll(".choice-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const id = Number(card.dataset.id);
-        if (selectedServiceIds.has(id)) selectedServiceIds.delete(id);
-        else selectedServiceIds.add(id);
-        setServiceIds([...selectedServiceIds]);
-        renderServices();
-        renderSummary();
-        updateServiceStepState();
+    // ========== ШАГ 4: Слоты ==========
+    async function loadSlots(dateStr) {
+      const container = $('slots-container');
+      container.className = 'loading';
+      container.textContent = 'Загрузка свободного времени…';
+      try {
+        const serviceIds = state.services.map(s => s.id);
+        const data = await getAvailability(state.master.id, dateStr, serviceIds);
+        container.innerHTML = '';
+        container.className = 'slots-grid';
+        if (!data.slots || data.slots.length === 0) {
+          container.className = 'loading';
+          container.textContent = 'На эту дату нет свободного времени';
+          $('btn-to-step-5').disabled = true;
+          return;
+        }
+        data.slots.forEach(slot => {
+          const card = document.createElement('div');
+          card.className = 'slot-card';
+          card.textContent = slot;
+          card.addEventListener('click', () => {
+            container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.slot = slot;
+            // Формируем ISO-строку: дата + время + Z (UTC)
+            // Сервер сам переведёт в UTC по SALON_UTC_OFFSET_MINUTES
+            state.startsAt = `${dateStr}T${slot}:00Z`;
+            $('btn-to-step-5').disabled = false;
+            updateSummary();
+          });
+          container.appendChild(card);
+        });
+      } catch (e) {
+        container.textContent = 'Не удалось загрузить слоты';
+        showError(e.message);
+      }
+    }
+
+    // ========== ШАГ 5: Авторизация + отправка ==========
+    let authMode = 'login';
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        authMode = tab.dataset.mode;
+        $('field-contact-wrap').style.display = authMode === 'register' ? 'block' : 'none';
       });
     });
-  }
+    // Скрыть поле контакта по умолчанию для режима "Войти"
+    $('field-contact-wrap').style.display = 'none';
 
-  function renderMasters() {
-    const grid = document.getElementById("masters-grid");
-    if (masters.length === 0) {
-      grid.innerHTML = '<div class="api-error">Пока нет доступных мастеров.</div>';
-      return;
+    // Если уже авторизован — подтянуть данные
+    const existingSession = getSession();
+    if (existingSession?.client) {
+      $('field-name').value = existingSession.client.name ?? '';
+      $('field-email').value = existingSession.client.email ?? '';
+      $('field-contact').value = existingSession.client.contact ?? '';
+      $('auth-section').innerHTML = `<div class="auth-box"><h3>Вы вошли как ${existingSession.client.name}</h3><p style="color:var(--color-text-secondary);font-size:14px;">${existingSession.client.email}</p></div>`;
     }
-    grid.innerHTML = masters
-      .map((m) => `
-        <div class="choice-card ${selectedMasterId === m.id ? "selected" : ""}" data-id="${m.id}">
-          <div class="title">${m.name}</div>
-          <div class="meta">${m.description ?? ""}</div>
-        </div>
-      `)
-      .join("");
 
-    grid.querySelectorAll(".choice-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        selectedMasterId = Number(card.dataset.id);
-        setMasterId(selectedMasterId);
-        renderMasters();
-        renderSummary();
-        updateMasterStepState();
-      });
-    });
-  }
+    async function ensureAuth() {
+      // Если уже есть валидная сессия — используем её
+      const session = getSession();
+      if (session?.session?.token && new Date(session.session.expiresAt) > new Date()) {
+        return session;
+      }
+      // Иначе — регистрируем/логиним
+      const name = $('field-name').value.trim();
+      const email = $('field-email').value.trim();
+      const password = $('field-password').value;
+      const contact = $('field-contact').value.trim() || email;
 
-  function updateServiceStepState() {
-    const btn = document.getElementById("to-step-master");
-    const hint = document.getElementById("service-hint");
-    const ok = selectedServiceIds.size > 0;
-    btn.disabled = !ok;
-    hint.textContent = ok ? "" : "Выберите хотя бы одну услугу";
-  }
+      if (!name || !email || !password) {
+        throw new Error('Заполните имя, email и пароль');
+      }
 
-  function updateMasterStepState() {
-    const btn = document.getElementById("to-step-date");
-    const hint = document.getElementById("master-hint");
-    const ok = selectedMasterId != null;
-    btn.disabled = !ok;
-    hint.textContent = ok ? "" : "Выберите мастера";
-  }
+      let result;
+      if (authMode === 'register') {
+        result = await registerClient({ name, email, password, contact });
+      } else {
+        result = await loginClient({ email, password });
+      }
+      saveSession({ client: result.client, session: result.session });
+      return result;
+    }
 
-  document.getElementById("to-step-master").addEventListener("click", () => {
-    if (selectedServiceIds.size === 0) return;
-    goToStep("master");
-  });
+    $('btn-submit').addEventListener('click', async () => {
+      const btn = $('btn-submit');
+      btn.disabled = true;
+      btn.textContent = 'Создаём запись…';
+      try {
+        const { session } = await ensureAuth();
+        const booking = await createBooking({
+          masterId: state.master.id,
+          serviceIds: state.services.map(s => s.id),
+          startsAt: state.startsAt,
+          comment: $('field-comment').value.trim() || undefined,
+        }, session.token);
 
-  document.getElementById("to-step-date").addEventListener("click", () => {
-    if (selectedMasterId == null) return;
-    // Дальше вести некуда — шаги 3–5 ещё не свёрстаны. Честно говорим
-    // об этом, а не подставляем недоделанный экран.
-    document.getElementById("not-ready-notice").classList.add("visible");
-  });
-
-  renderStepsIndicator();
-  updateServiceStepState();
-  updateMasterStepState();
-  renderSummary();
-
-  getServices()
-    .then((data) => {
-      services = data;
-      renderServices();
-      renderSummary();
-    })
-    .catch((err) => {
-      document.getElementById("services-grid").innerHTML = `<div class="api-error">${err.message}</div>`;
+        // Показать экран успеха
+        const totalDuration = state.services.reduce((sum, s) => sum + s.durationMinutes, 0);
+        $('success-content').innerHTML = `
+          <div style="padding:20px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-bg-card);">
+            <div style="font-size:24px;font-weight:700;margin-bottom:16px;color:var(--color-button);">${booking.code}</div>
+            <div style="margin-bottom:8px;"><strong>Услуга:</strong> ${state.services.map(s => s.name).join(', ')}</div>
+            <div style="margin-bottom:8px;"><strong>Мастер:</strong> ${state.master.name}</div>
+            <div style="margin-bottom:8px;"><strong>Дата и время:</strong> ${formatDateLabel(state.date)}, ${state.slot} (${totalDuration} мин)</div>
+            <div style="margin-bottom:8px;"><strong>Статус:</strong> Ожидает подтверждения</div>
+            <div style="font-size:13px;color:var(--color-text-secondary);margin-top:16px;">Подтверждение отправлено на ${$('field-email').value}</div>
+          </div>
+        `;
+        goToStep('success');
+        clearSession(); // сбросить форму для следующего раза
+      } catch (e) {
+        showError(e.message);
+        btn.disabled = false;
+        btn.textContent = 'Подтвердить запись';
+      }
     });
 
-  getMasters()
-    .then((data) => {
-      masters = data;
-      renderMasters();
-      renderSummary();
-    })
-    .catch((err) => {
-      document.getElementById("masters-grid").innerHTML = `<div class="api-error">${err.message}</div>`;
-    });
-</script>
+    // ========== Навигация ==========
+    $('btn-to-step-2').addEventListener('click', () => goToStep(2));
+    $('btn-back-1').addEventListener('click', () => goToStep(1));
+    $('btn-to-step-3').addEventListener('click', () => { renderDates(); goToStep(3); });
+    $('btn-back-2').addEventListener('click', () => goToStep(2));
+    $('btn-to-step-4').addEventListener('click', () => goToStep(4));
+    $('btn-back-3').addEventListener('click', () => goToStep(3));
+    $('btn-to-step-5').addEventListener('click', () => goToStep(5));
+    $('btn-back-4').addEventListener('click', () => goToStep(4));
 
+    // Старт
+    loadServices();
+    loadMasters();
+  </script>
 </body>
 </html>
