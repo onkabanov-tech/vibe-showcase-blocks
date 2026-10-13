@@ -10,6 +10,16 @@ loadEnv();
 const PORT = Number(process.env.PORT ?? 3000);
 
 const server = createServer((req, res) => {
+       // CORS заголовки для фронтенда на другом домене
+     res.setHeader('Access-Control-Allow-Origin', '*');
+     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+     if (req.method === 'OPTIONS') {
+       res.writeHead(204);
+       res.end();
+       return;
+     }
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -19,22 +29,7 @@ const server = createServer((req, res) => {
     res.end();
     return;
   }
-  // ========================================================
-  // 1. ДОБАВЛЯЕМ CORS ЗАГОЛОВКИ ЗДЕСЬ (внутри функции!)
-  // ========================================================
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // 2. Обрабатываем preflight запросы (OPTIONS)
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-  // ========================================================
-
-  // 3. Основной обработчик запросов
+   // 3. Основной обработчик запросов
   handleRequest(req, res).catch((error) => {
     console.error("Необработанная ошибка запроса:", error);
     if (!res.headersSent) {
