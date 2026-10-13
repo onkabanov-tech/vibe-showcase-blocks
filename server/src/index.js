@@ -1,3 +1,14 @@
+// Добавить CORS заголовки
+res.setHeader('Access-Control-Allow-Origin', '*');
+res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+// Обработать preflight запросы (OPTIONS)
+if (req.method === 'OPTIONS') {
+  res.writeHead(204);
+  res.end();
+  return;
+}
 // Точка входа HTTP-сервера. Запуск: npm start (см. package.json).
 import { createServer } from "node:http";
 import { loadEnv } from "./env.js";
