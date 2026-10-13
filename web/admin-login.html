@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход администратора</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-link">← На главную</a>
+  </header>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <h1>Вход администратора</h1>
+      <p class="subtitle">Панель управления записями</p>
+      <div class="form-error" id="form-error"></div>
+      <form id="admin-login-form">
+        <div class="field">
+          <label>Логин</label>
+          <input type="text" id="username" required>
+        </div>
+        <div class="field">
+          <label>Пароль</label>
+          <input type="password" id="password" required>
+        </div>
+        <button type="submit" class="btn-primary">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { loginAdmin } from './js/api.js';
+    import { saveSession } from './js/session.js';
+
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorBox = document.getElementById('form-error');
+
+      try {
+        const result = await loginAdmin({ username, password });
+        // Сохраняем сессию админа (отдельно от клиентской)
+        localStorage.setItem('admin_session', JSON.stringify(result));
+        window.location.href = 'admin.html';
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.classList.add('visible');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .back-link {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 24px;
+    }
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .filter-btn {
+      padding: 10px 20px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .filter-btn.active {
+      background: var(--color-button-light);
+      border-color: var(--color-button);
+      color: var(--color-button);
+    }
+    .bookings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .booking-card {
+      padding: 20px;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      background: var(--color-bg-card);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
+    }
+    .booking-info h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .booking-info p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .booking-info .code {
+      font-weight: 600;
+      color: var(--color-button);
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status.pending { background: #fef3c7; color: #92400e; }
+    .status.confirmed { background: #d1fae5; color: #065f46; }
+    .status.cancelled { background: #fee2e2; color: #991b1b; }
+    .booking-actions {
+      display: flex;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .action-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .action-btn.confirm {
+      background: #10b981;
+      color: white;
+    }
+    .action-btn.cancel {
+      background: #ef4444;
+      color: white;
+    }
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .loading, .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--color-text-secondary);
+    }
+    .error {
+      color: var(--color-button);
+      padding: 12px 16px;
+      border: 1px solid var(--color-button);
+      border-radius: 8px;
+      background: var(--color-button-light);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-link">← На главную</a>
+    <button id="logout-btn" style="background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:14px;">Выйти</button>
+  </header>
+
+  <div class="container">
+    <h1>Админ-панель · Записи</h1>
+
+    <div id="error-box"></div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-status="">Все</button>
+      <button class="filter-btn" data-status="pending">Ожидают</button>
+      <button class="filter-btn" data-status="confirmed">Подтверждены</button>
+      <button class="filter-btn" data-status="cancelled">Отменены</button>
+    </div>
+
+    <div id="bookings-container" class="loading">Загрузка записей…</div>
+  </div>
+
+  <script type="module">
+    import { getAllBookings, setBookingStatus, logoutAdmin } from './js/api.js';
+
+    const STORAGE_KEY = 'admin_session';
+    const container = document.getElementById('bookings-container');
+    const errorBox = document.getElementById('error-box');
+    let currentFilter = '';
+
+    function getAdminSession() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function showError(msg) {
+      errorBox.innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    function formatDate(isoStr) {
+      const d = new Date(isoStr);
+      return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getStatusLabel(status) {
+      const labels = { pending: 'Ожидает', confirmed: 'Подтверждена', cancelled: 'Отменена' };
+      return labels[status] || status;
+    }
+
+    async function loadBookings() {
+      const session = getAdminSession();
+      if (!session?.session?.token) {
+        window.location.href = 'admin-login.html';
+        return;
+      }
+
+      container.className = 'loading';
+      container.textContent = 'Загрузка записей…';
+      errorBox.innerHTML = '';
+
+      try {
+        const bookings = await getAllBookings(session.session.token, { status: currentFilter || undefined });
+        container.innerHTML = '';
+
+        if (bookings.length === 0) {
+          container.className = 'empty';
+          container.textContent = 'Записей не найдено';
+          return;
+        }
+
+        container.className = 'bookings-list';
+        bookings.forEach(b => {
+          const card = document.createElement('div');
+          card.className = 'booking-card';
+          card.innerHTML = `
+            <div class="booking-info">
+              <h3><span class="code">${b.code}</span> · ${b.client?.name || 'Клиент'}</h3>
+              <p>${b.services.map(s => s.name).join(', ')}</p>
+              <p>Мастер: ${b.master?.name || '—'} · ${formatDate(b.startsAt)}</p>
+              <p>Контакт: ${b.client?.contact || '—'}</p>
+              ${b.comment ? `<p>Комментарий: ${b.comment}</p>` : ''}
+              <span class="status ${b.status}">${getStatusLabel(b.status)}</span>
+            </div>
+            <div class="booking-actions">
+              <button class="action-btn confirm" data-id="${b.id}" ${b.status === 'confirmed' ? 'disabled' : ''}>Подтвердить</button>
+              <button class="action-btn cancel" data-id="${b.id}" ${b.status === 'cancelled' ? 'disabled' : ''}>Отменить</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        // Обработчики кнопок
+        container.querySelectorAll('.action-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const newStatus = btn.classList.contains('confirm') ? 'confirmed' : 'cancelled';
+            btn.disabled = true;
+            try {
+              await setBookingStatus(id, newStatus, session.session.token);
+              await loadBookings(); // Перезагрузить список
+            } catch (error) {
+              showError(error.message);
+              btn.disabled = false;
+            }
+          });
+        });
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    // Фильтры
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.status;
+        loadBookings();
+      });
+    });
+
+    // Выход
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      const session = getAdminSession();
+      if (session?.session?.token) {
+        try { await logoutAdmin(session.session.token); } catch {}
+      }
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.href = 'admin-login.html';
+    });
+
+    // Старт
+    loadBookings();
+  </script>
+</body>
+</html>
