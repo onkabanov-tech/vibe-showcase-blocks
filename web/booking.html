@@ -114,10 +114,6 @@
       border-color: var(--color-button);
       background: var(--color-button-light);
     }
-    .date-card.disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
     .date-weekday {
       font-size: 12px;
       color: var(--color-text-secondary);
@@ -271,11 +267,21 @@
       cursor: pointer;
       font-size: 13px;
       font-weight: 600;
+      color: var(--color-text-primary);
     }
     .auth-tab.active {
       background: var(--color-button-light);
       border-color: var(--color-button);
     }
+    .logged-in {
+      padding: 16px;
+      border: 1px solid var(--color-button);
+      border-radius: 12px;
+      background: var(--color-button-light);
+      margin-bottom: 20px;
+    }
+    .logged-in .name { font-weight: 600; font-size: 16px; }
+    .logged-in .email { color: var(--color-text-secondary); font-size: 14px; }
   </style>
 </head>
 <body>
@@ -332,32 +338,7 @@
       <section class="step" data-step="5">
         <div class="step-title"><span class="step-num">Шаг 5</span>· Контакты</div>
 
-        <div id="auth-section">
-          <div class="auth-box">
-            <div class="auth-tabs">
-              <button class="auth-tab active" data-mode="login">Войти</button>
-              <button class="auth-tab" data-mode="register">Регистрация</button>
-            </div>
-            <div id="auth-form">
-              <div class="field">
-                <label>Имя</label>
-                <input type="text" id="field-name" placeholder="Как к вам обращаться">
-              </div>
-              <div class="field">
-                <label>Email</label>
-                <input type="email" id="field-email" placeholder="your@email.com">
-              </div>
-              <div class="field" id="field-contact-wrap">
-                <label>Телефон или email для связи</label>
-                <input type="text" id="field-contact" placeholder="+7 999 123-45-67">
-              </div>
-              <div class="field">
-                <label>Пароль</label>
-                <input type="password" id="field-password" placeholder="Минимум 6 символов">
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="auth-section"></div>
 
         <div class="field">
           <label>Комментарий (необязательно)</label>
@@ -408,48 +389,83 @@
   </div>
 
   <script type="module">
-    import { getServices, getMasters, getAvailability, createBooking, loginClient, registerClient } from './js/api.js';
-    import { getSession, saveSession, clearSession } from './js/session.js';
+    import {
+      getServices, getMasters, getAvailability,
+      createBooking, loginClient, registerClient,
+    } from './js/api.js';
+    import { getSession, saveSession, clearSession, getToken } from './js/session.js';
 
     // Состояние формы
     const state = {
-      services: [],          // выбранные услуги {id, name, durationMinutes, price}
-      master: null,          // выбранный мастер {id, name}
-      date: null,            // выбранная дата 'YYYY-MM-DD'
-      slot: null,            // выбранное время 'HH:MM'
-      startsAt: null,        // ISO-строка для отправки на сервер
+      services: [],
+      master: null,
+      date: null,
+      slot: null,
+      startsAt: null,
     };
 
     const allServices = [];
     const allMasters = [];
 
-    // Утилиты
     const $ = (id) => document.getElementById(id);
+
     const showError = (msg) => {
       const box = $('error-box');
       box.textContent = msg;
       box.classList.add('visible');
-      setTimeout(() => box.classList.remove('visible'), 5000);
+      setTimeout(() => box.classList.remove('visible'), 6000);
     };
+
     const goToStep = (n) => {
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
       document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
       window.scrollTo(0, 0);
     };
-   const updateSummary = () => {
-  $('sum-services').textContent = state.services.length
-    ? state.services.map(s => s.name).join(', ')
-    : '—';
-  $('sum-master').textContent = state.master?.name ?? '—';
-  $('sum-date').textContent = state.date ? formatDateLabel(state.date) : '—';
-  $('sum-time').textContent = state.slot ?? '—';
-  const total = state.services.reduce((sum, s) => sum + s.price, 0);
-  $('sum-total').textContent = total ? `${(total / 100).toFixed(0)} ₽` : '—';
-};
+
+    const updateSummary = () => {
+      $('sum-services').textContent = state.services.length
+        ? state.services.map(s => s.name).join(', ')
+        : '—';
+      $('sum-master').textContent = state.master?.name ?? '—';
+      $('sum-date').textContent = state.date ? formatDateLabel(state.date) : '—';
+      $('sum-time').textContent = state.slot ?? '—';
+      const total = state.services.reduce((sum, s) => sum + s.price, 0);
+      $('sum-total').textContent = total ? `${(total / 100).toFixed(0)} ₽` : '—';
+    };
+
     const formatPrice = (kopecks) => `${(kopecks / 100).toFixed(0)} ₽`;
     const formatDateLabel = (dateStr) => {
-      const d = new Date(dateStr);
+      const d = new Date(dateStr + 'T00:00:00');
       return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    };
+
+    // Преобразует локальное время салона (YYYY-MM-DD + HH:MM) в ISO UTC
+    const SALON_UTC_OFFSET_MINUTES = 180;
+    const toIsoUtc = (dateStr, slot) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const [h, min] = slot.split(':').map(Number);
+      const local = new Date(Date.UTC(y, m - 1, d, h, min));
+      local.setMinutes(local.getMinutes() - SALON_UTC_OFFSET_MINUTES);
+      return local.toISOString().replace('.000Z', 'Z');
+    };
+
+    // Извлекает время HH:MM из любого формата слота
+    const extractTime = (slot) => {
+      if (typeof slot === 'string') {
+        if (slot.includes('T')) {
+          const match = slot.match(/T(\d{2}:\d{2})/);
+          return match ? match[1] : slot;
+        }
+        return slot;
+      }
+      if (typeof slot === 'object') {
+        if (slot.time) return slot.time;
+        if (slot.startsAt) {
+          const match = slot.startsAt.match(/T(\d{2}:\d{2})/);
+          return match ? match[1] : String(slot.startsAt);
+        }
+      }
+      return String(slot);
     };
 
     // ========== ШАГ 1: Услуги ==========
@@ -542,7 +558,6 @@
           <div class="date-day">${d.getDate()} ${months[d.getMonth()]}</div>
         `;
         card.addEventListener('click', async () => {
-          if (card.classList.contains('disabled')) return;
           container.querySelectorAll('.date-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           state.date = dateStr;
@@ -557,108 +572,121 @@
     }
 
     // ========== ШАГ 4: Слоты ==========
-   // Извлекает время HH:MM из любого формата слота
-function extractTime(slot) {
-  if (typeof slot === 'string') {
-    // Если это ISO-строка "2026-10-15T07:00:15Z" — берём время
-    if (slot.includes('T')) {
-      const match = slot.match(/T(\d{2}:\d{2})/);
-      return match ? match[1] : slot;
-    }
-    // Если уже "14:30" — возвращаем как есть
-    return slot;
-  }
-  // Если объект — берём поле time или startsAt
-  if (typeof slot === 'object') {
-    if (slot.time) return slot.time;
-    if (slot.startsAt) {
-      const match = slot.startsAt.match(/T(\d{2}:\d{2})/);
-      return match ? match[1] : String(slot.startsAt);
-    }
-  }
-  return String(slot);
-}
-
-async function loadSlots(dateStr) {
-  const container = $('slots-container');
-  container.className = 'loading';
-  container.textContent = 'Загрузка свободного времени…';
-  try {
-    const serviceIds = state.services.map(s => s.id);
-    const data = await getAvailability(state.master.id, dateStr, serviceIds);
-    container.innerHTML = '';
-    container.className = 'slots-grid';
-    
-    const slots = data.slots || [];
-    if (slots.length === 0) {
+    async function loadSlots(dateStr) {
+      const container = $('slots-container');
       container.className = 'loading';
-      container.textContent = 'На эту дату нет свободного времени';
-      $('btn-to-step-5').disabled = true;
-      return;
+      container.textContent = 'Загрузка свободного времени…';
+      try {
+        const serviceIds = state.services.map(s => s.id);
+        const data = await getAvailability(state.master.id, dateStr, serviceIds);
+        container.innerHTML = '';
+        container.className = 'slots-grid';
+        
+        const slots = data.slots || [];
+        if (slots.length === 0) {
+          container.className = 'loading';
+          container.textContent = 'На эту дату нет свободного времени';
+          $('btn-to-step-5').disabled = true;
+          return;
+        }
+        
+        slots.forEach(slot => {
+          const timeStr = extractTime(slot);
+          const card = document.createElement('div');
+          card.className = 'slot-card';
+          card.textContent = timeStr;
+          
+          card.addEventListener('click', () => {
+            container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.slot = timeStr;
+            state.startsAt = toIsoUtc(dateStr, timeStr);
+            $('btn-to-step-5').disabled = false;
+            updateSummary();
+          });
+          container.appendChild(card);
+        });
+      } catch (e) {
+        container.textContent = 'Не удалось загрузить слоты';
+        showError(e.message);
+      }
     }
-    
-    slots.forEach(slot => {
-      const timeStr = extractTime(slot);
-      const card = document.createElement('div');
-      card.className = 'slot-card';
-      card.textContent = timeStr;
-      
-      card.addEventListener('click', () => {
-        container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        state.slot = timeStr; // Сохраняем только время "14:30"
-        state.startsAt = toIsoUtc(dateStr, timeStr); // Формируем полную ISO-строку
-        $('btn-to-step-5').disabled = false;
-        updateSummary();
-      });
-      container.appendChild(card);
-    });
-  } catch (e) {
-    container.textContent = 'Не удалось загрузить слоты';
-    showError(e.message);
-  }
-}
 
     // ========== ШАГ 5: Авторизация + отправка ==========
-    let authMode = 'login';
-    document.querySelectorAll('.auth-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        authMode = tab.dataset.mode;
-        $('field-contact-wrap').style.display = authMode === 'register' ? 'block' : 'none';
-      });
-    });
-    // Скрыть поле контакта по умолчанию для режима "Войти"
-    $('field-contact-wrap').style.display = 'none';
+    function renderAuthSection() {
+      const section = $('auth-section');
+      const existing = getSession();
 
-    // Если уже авторизован — подтянуть данные
-    const existingSession = getSession();
-    if (existingSession?.client) {
-      $('field-name').value = existingSession.client.name ?? '';
-      $('field-email').value = existingSession.client.email ?? '';
-      $('field-contact').value = existingSession.client.contact ?? '';
-      $('auth-section').innerHTML = `<div class="auth-box"><h3>Вы вошли как ${existingSession.client.name}</h3><p style="color:var(--color-text-secondary);font-size:14px;">${existingSession.client.email}</p></div>`;
+      if (existing?.session?.token && new Date(existing.session.expiresAt) > new Date()) {
+        section.innerHTML = `
+          <div class="logged-in">
+            <div class="name">${existing.client?.name ?? 'Клиент'}</div>
+            <div class="email">${existing.client?.email ?? ''}</div>
+          </div>
+        `;
+        return;
+      }
+
+      section.innerHTML = `
+        <div class="auth-box">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-mode="login">Войти</button>
+            <button class="auth-tab" data-mode="register">Регистрация</button>
+          </div>
+          <div id="auth-form">
+            <div class="field" id="field-name-wrap" style="display:none;">
+              <label>Имя</label>
+              <input type="text" id="field-name" placeholder="Как к вам обращаться">
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="field-email" placeholder="your@email.com">
+            </div>
+            <div class="field" id="field-contact-wrap" style="display:none;">
+              <label>Телефон или email для связи</label>
+              <input type="text" id="field-contact" placeholder="+7 999 123-45-67">
+            </div>
+            <div class="field">
+              <label>Пароль</label>
+              <input type="password" id="field-password" placeholder="Минимум 6 символов">
+            </div>
+          </div>
+        </div>
+      `;
+
+      let authMode = 'login';
+      section.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          section.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          authMode = tab.dataset.mode;
+          $('field-name-wrap').style.display = authMode === 'register' ? 'block' : 'none';
+          $('field-contact-wrap').style.display = authMode === 'register' ? 'block' : 'none';
+        });
+      });
     }
 
     async function ensureAuth() {
-      // Если уже есть валидная сессия — используем её
-      const session = getSession();
-      if (session?.session?.token && new Date(session.session.expiresAt) > new Date()) {
-        return session;
+      const existing = getSession();
+      if (existing?.session?.token && new Date(existing.session.expiresAt) > new Date()) {
+        return existing;
       }
-      // Иначе — регистрируем/логиним
-      const name = $('field-name').value.trim();
-      const email = $('field-email').value.trim();
-      const password = $('field-password').value;
-      const contact = $('field-contact').value.trim() || email;
 
-      if (!name || !email || !password) {
-        throw new Error('Заполните имя, email и пароль');
+      const name = $('field-name')?.value.trim();
+      const email = $('field-email')?.value.trim();
+      const password = $('field-password')?.value;
+      const contact = $('field-contact')?.value.trim() || email;
+
+      if (!email || !password) {
+        throw new Error('Заполните email и пароль');
       }
+
+      const activeTab = document.querySelector('.auth-tab.active');
+      const authMode = activeTab?.dataset.mode ?? 'login';
 
       let result;
       if (authMode === 'register') {
+        if (!name) throw new Error('Укажите имя');
         result = await registerClient({ name, email, password, contact });
       } else {
         result = await loginClient({ email, password });
@@ -680,7 +708,6 @@ async function loadSlots(dateStr) {
           comment: $('field-comment').value.trim() || undefined,
         }, session.token);
 
-        // Показать экран успеха
         const totalDuration = state.services.reduce((sum, s) => sum + s.durationMinutes, 0);
         $('success-content').innerHTML = `
           <div style="padding:20px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-bg-card);">
@@ -689,11 +716,9 @@ async function loadSlots(dateStr) {
             <div style="margin-bottom:8px;"><strong>Мастер:</strong> ${state.master.name}</div>
             <div style="margin-bottom:8px;"><strong>Дата и время:</strong> ${formatDateLabel(state.date)}, ${state.slot} (${totalDuration} мин)</div>
             <div style="margin-bottom:8px;"><strong>Статус:</strong> Ожидает подтверждения</div>
-            <div style="font-size:13px;color:var(--color-text-secondary);margin-top:16px;">Подтверждение отправлено на ${$('field-email').value}</div>
           </div>
         `;
         goToStep('success');
-        clearSession(); // сбросить форму для следующего раза
       } catch (e) {
         showError(e.message);
         btn.disabled = false;
@@ -708,7 +733,7 @@ async function loadSlots(dateStr) {
     $('btn-back-2').addEventListener('click', () => goToStep(2));
     $('btn-to-step-4').addEventListener('click', () => goToStep(4));
     $('btn-back-3').addEventListener('click', () => goToStep(3));
-    $('btn-to-step-5').addEventListener('click', () => goToStep(5));
+    $('btn-to-step-5').addEventListener('click', () => { renderAuthSection(); goToStep(5); });
     $('btn-back-4').addEventListener('click', () => goToStep(4));
 
     // Старт
